@@ -20,7 +20,7 @@ package com.aliyun.adb.contest.t_digest;
 import java.nio.ByteBuffer;
 import java.util.*;
 
-import static com.tdunning.math.stats.IntAVLTree.NIL;
+import static com.aliyun.adb.contest.t_digest.IntAVLTree.NIL;
 
 public class AVLTreeDigest extends AbstractTDigest {
     final Random gen = new Random();
