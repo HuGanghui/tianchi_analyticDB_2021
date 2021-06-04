@@ -70,6 +70,10 @@ public class TDigestAnalyticDB implements AnalyticDB {
         tdmap.forEach((tableColumn, values) -> {
             System.out.println("Finish loading column " + tableColumn);
         });
+
+        System.out.println("freeMemory: " + Runtime.getRuntime().freeMemory()/1024/1024 + " M");
+        System.out.println("totalMemory: " + Runtime.getRuntime().totalMemory()/1024/1024 + " M");
+        System.out.println("maxMemory: " + Runtime.getRuntime().maxMemory()/1024/1024 + " M");
     }
 
     private String tableColumnKey(String table, String column) {
