@@ -53,6 +53,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
         raf.seek(offset);
         byte[] bbuf = new byte[8];
         raf.read(bbuf);
+        raf.close();
         return String.valueOf(bytesToLong(bbuf));
     }
 
