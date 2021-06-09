@@ -3,6 +3,7 @@ package com.aliyun.adb.contest;
 import com.aliyun.adb.contest.spi.AnalyticDB;
 
 import java.io.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static com.aliyun.adb.contest.common.Utils.bytesToLong;
@@ -13,9 +14,10 @@ public class MergeSortAnalyticDB implements AnalyticDB {
     private Map<String, List<File>> fileMap = new HashMap<>();
     private Map<String, File> sortedFileMap = new HashMap<>();
     // 每个文件可保存的最大行数
-    private final int MAX_FILE_CAP = (int) (0.375 * Math.pow(10, 8));
-    private final int TOTAL_LINE = (int) (3 * Math.pow(10, 8));
-//    private final int MAX_FILE_CAP = (int) (2500);
+//    private final int MAX_FILE_CAP = (int) (0.375 * Math.pow(10, 8));
+//    private final int TOTAL_LINE = (int) (3 * Math.pow(10, 8));
+    private final int TOTAL_LINE = (int) (10000);
+    private final int MAX_FILE_CAP = (int) (2500);
 
     private final int Buffer_CAP = 4096;
     /**
@@ -30,11 +32,18 @@ public class MergeSortAnalyticDB implements AnalyticDB {
     public void load(String tpchDataFileDir, String workspaceDir) throws Exception {
         File dir = new File(tpchDataFileDir);
 
+        Date date = new Date();
+        System.out.println("date:" + date);
+        loadInMemroy();
+
         for (File dataFile : dir.listFiles()) {
             System.out.println("Start loading table " + dataFile.getName());
+            System.out.println("date:" + date);
+            loadInMemroy();
 
 //            // You can write data to workspaceDir
             saveToDisk(workspaceDir, dataFile);
+
 
 //            loadInMemroy(dataFile);
         }
@@ -42,7 +51,6 @@ public class MergeSortAnalyticDB implements AnalyticDB {
         for (String key : fileMap.keySet()) {
             sort(key, workspaceDir);
         }
-        loadInMemroy();
     }
 
     @Override
