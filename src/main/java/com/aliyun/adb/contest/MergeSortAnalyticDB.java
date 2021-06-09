@@ -38,14 +38,13 @@ public class MergeSortAnalyticDB implements AnalyticDB {
 
         for (File dataFile : dir.listFiles()) {
             System.out.println("Start loading table " + dataFile.getName());
-            System.out.println("date:" + date);
-            loadInMemroy();
 
 //            // You can write data to workspaceDir
             saveToDisk(workspaceDir, dataFile);
+            date = new Date();
+            System.out.println("date:" + date);
+            loadInMemroy();
 
-
-//            loadInMemroy(dataFile);
         }
 
         for (String key : fileMap.keySet()) {
@@ -101,6 +100,9 @@ public class MergeSortAnalyticDB implements AnalyticDB {
                 file_index++;
                 for (int i = 0; i < columnLength; i++) {
                     saveToDisk(valuesToSort[i], outArray[i], true);
+                    Date date = new Date();
+                    System.out.println("date:" + date);
+                    loadInMemroy();
                     String tableColumn = tableColumnKey(table, columns[i]);
                     File file = new File(workspaceDir, tableColumn + "_" + file_index);
                     fileMap.get(tableColumn).add(file);
