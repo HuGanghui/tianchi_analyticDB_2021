@@ -3,11 +3,11 @@ package com.aliyun.adb.contest;
 import com.aliyun.adb.contest.spi.AnalyticDB;
 
 import java.io.*;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static com.aliyun.adb.contest.common.Utils.bytesToLong;
 import static com.aliyun.adb.contest.common.Utils.longToBytes;
+import static com.aliyun.adb.contest.common.Utils.printTimeAndMemory;
 
 public class MergeSortAnalyticDB implements AnalyticDB {
 
@@ -31,24 +31,20 @@ public class MergeSortAnalyticDB implements AnalyticDB {
     @Override
     public void load(String tpchDataFileDir, String workspaceDir) throws Exception {
         File dir = new File(tpchDataFileDir);
-
-        Date date = new Date();
-        System.out.println("date:" + date);
-        loadInMemroy();
+        printTimeAndMemory("load", "at the beginning");
 
         for (File dataFile : dir.listFiles()) {
             System.out.println("Start loading table " + dataFile.getName());
 
 //            // You can write data to workspaceDir
             saveToDisk(workspaceDir, dataFile);
-            date = new Date();
-            System.out.println("date:" + date);
-            loadInMemroy();
+            printTimeAndMemory("load", "after saveToDisk func");
 
         }
 
         for (String key : fileMap.keySet()) {
             sort(key, workspaceDir);
+            printTimeAndMemory("load", "in the middle of two sort");
         }
     }
 
@@ -96,18 +92,19 @@ public class MergeSortAnalyticDB implements AnalyticDB {
             valuesToSortIndex++;
 
             if (valuesToSortIndex % MAX_FILE_CAP == 0) {
+                printTimeAndMemory("saveToDisk", "at the beginning of MAX_FILE_CAP save to disk");
                 valuesToSortIndex = 0;
                 file_index++;
                 for (int i = 0; i < columnLength; i++) {
                     saveToDisk(valuesToSort[i], outArray[i], true);
                     Date date = new Date();
                     System.out.println("date:" + date);
-                    loadInMemroy();
                     String tableColumn = tableColumnKey(table, columns[i]);
                     File file = new File(workspaceDir, tableColumn + "_" + file_index);
                     fileMap.get(tableColumn).add(file);
                     outArray[i] = new FileOutputStream(file);
                 }
+                printTimeAndMemory("saveToDisk", "at the end of MAX_FILE_CAP save to disk");
             }
         }
 
@@ -207,12 +204,6 @@ public class MergeSortAnalyticDB implements AnalyticDB {
             this.insIndex = insIndex;
             this.value = value;
         }
-    }
-
-    private void loadInMemroy() {
-        System.out.println("freeMemory: " + Runtime.getRuntime().freeMemory()/1024/1024 + " M");
-        System.out.println("totalMemory: " + Runtime.getRuntime().totalMemory()/1024/1024 + " M");
-        System.out.println("maxMemory: " + Runtime.getRuntime().maxMemory()/1024/1024 + " M");
     }
 
     private String tableColumnKey(String table, String column) {
