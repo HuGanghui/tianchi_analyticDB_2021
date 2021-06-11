@@ -17,11 +17,11 @@ public class Utils {
         return buffer.getLong();
     }
 
-    public static void printTimeAndMemory(String funcName, String info) {
+    public static void printTimeAndMemory(String funcName, String info, long startTime, long endTime) {
         System.out.println("=====================");
         System.out.println(funcName + ": " + info);
-        Date date = new Date();
-        System.out.println("date:" + date);
+        double spendTime = (endTime - startTime) / 1000.0;
+        System.out.println("Total Time: " + spendTime + " sec");
         loadInMemroy();
         System.out.println("=====================");
     }

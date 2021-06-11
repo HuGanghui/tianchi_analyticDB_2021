@@ -17,10 +17,10 @@ public class MergeSortAnalyticDB implements AnalyticDB {
     private Map<String, List<File>> fileMap = new HashMap<>();
     private Map<String, File> sortedFileMap = new HashMap<>();
     // 每个文件可保存的最大行数
-    private final int MAX_FILE_CAP = (int) (0.75 * Math.pow(10, 8));
-    private final int TOTAL_LINE = (int) (3 * Math.pow(10, 8));
-//    private final int TOTAL_LINE = (int) (10000);
-//    private final int MAX_FILE_CAP = (int) (2500);
+//    private final int MAX_FILE_CAP = (int) (0.75 * Math.pow(10, 8));
+//    private final int TOTAL_LINE = (int) (3 * Math.pow(10, 8));
+    private final int TOTAL_LINE = (int) (10000);
+    private final int MAX_FILE_CAP = (int) (2500);
 
     private final int Buffer_CAP = 8192;
     /**
@@ -33,28 +33,27 @@ public class MergeSortAnalyticDB implements AnalyticDB {
 
     @Override
     public void load(String tpchDataFileDir, String workspaceDir) throws Exception {
+        Date date = new Date();
+        System.out.println("date:" + date);
+        long startTime = System.currentTimeMillis();
+
         File dir = new File(tpchDataFileDir);
-        printTimeAndMemory("load", "at the beginning of load func");
 
         for (File dataFile : dir.listFiles()) {
-            System.out.println("Start loading table " + dataFile.getName());
-
 //            // You can write data to workspaceDir
             saveToDisk(workspaceDir, dataFile);
-            printTimeAndMemory("load", "after saveToDisk func");
 
         }
 
         for (String key : fileMap.keySet()) {
             sort(key, workspaceDir);
-            printTimeAndMemory("load", "in the middle of two sort");
         }
-        printTimeAndMemory("load", "at the end of load func");
+        printTimeAndMemory("load", "load ended", startTime, System.currentTimeMillis());
     }
 
     @Override
     public String quantile(String table, String column, double percentile) throws Exception {
-        printTimeAndMemory("quantile", "at the beginning of quantile func");
+        long startTime = System.currentTimeMillis();
         String tableColumn = tableColumnKey(table, column);
         RandomAccessFile raf = new RandomAccessFile(sortedFileMap.get(tableColumn), "r");
         long offset = (long) (TOTAL_LINE * percentile - 1) * 8;
@@ -62,11 +61,13 @@ public class MergeSortAnalyticDB implements AnalyticDB {
         byte[] bbuf = new byte[8];
         raf.read(bbuf);
         raf.close();
-        printTimeAndMemory("quantile", "at the end of quantile func");
+        printTimeAndMemory("load", "load ended", startTime, System.currentTimeMillis());
         return String.valueOf(bytesToLong(bbuf));
     }
 
     private void saveToDisk(String workspaceDir, File dataFile) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         BufferedReader reader = new BufferedReader(new FileReader(dataFile));
         String table = dataFile.getName();
         String[] columns = reader.readLine().split(",");
@@ -98,11 +99,10 @@ public class MergeSortAnalyticDB implements AnalyticDB {
             valuesToSortIndex++;
 
             if (valuesToSortIndex % MAX_FILE_CAP == 0) {
-                printTimeAndMemory("saveToDisk", "at the beginning of MAX_FILE_CAP save to disk");
                 valuesToSortIndex = 0;
                 file_index++;
                 for (int i = 0; i < columnLength; i++) {
-                    saveToDisk(valuesToSort[i], outArray[i], true, true);
+                    eachSaveToDisk(valuesToSort[i], outArray[i], true, true);
                     Date date = new Date();
                     System.out.println("date:" + date);
                     String tableColumn = tableColumnKey(table, columns[i]);
@@ -110,7 +110,6 @@ public class MergeSortAnalyticDB implements AnalyticDB {
                     fileMap.get(tableColumn).add(file);
                     outArray[i] = new FileOutputStream(file);
                 }
-                printTimeAndMemory("saveToDisk", "at the end of MAX_FILE_CAP save to disk");
             }
         }
 
@@ -120,12 +119,15 @@ public class MergeSortAnalyticDB implements AnalyticDB {
             }
             long[] leftToSort = new long[valuesToSortIndex];
             System.arraycopy(valuesToSort[i], 0, leftToSort, 0, valuesToSortIndex);
-            saveToDisk(leftToSort, outArray[i], true, true);
+            eachSaveToDisk(leftToSort, outArray[i], true, true);
         }
         reader.close();
+        printTimeAndMemory("saveToDisk", "saveTodisk ended", startTime, System.currentTimeMillis());
     }
 
     private void sort(String key, String workspaceDir) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         List<File> fileList = fileMap.get(key);
         int n = fileList.size();
         FileChannel[] fileChannels = new FileChannel[n];
@@ -157,7 +159,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
             buf[buf_index++] = pair.value;
 //            forTest.add(pair.value);
             if (buf_index == MAX_FILE_CAP) {
-                saveToDisk(buf, out, false, false);
+                eachSaveToDisk(buf, out, false, false);
                 buf_index = 0;
             }
             if (longBuffers[pair.insIndex].hasRemaining()) {
@@ -173,16 +175,20 @@ public class MergeSortAnalyticDB implements AnalyticDB {
         if (buf_index != 0) {
             long[] leftToSort = new long[buf_index];
             System.arraycopy(buf, 0, leftToSort, 0, buf_index);
-            saveToDisk(leftToSort, out, true, false);
+            eachSaveToDisk(leftToSort, out, true, false);
         }
+        printTimeAndMemory("sort", "sort ended", startTime, System.currentTimeMillis());
+
     }
 
-    private void saveToDisk(long[] valuesToSort, FileOutputStream out, boolean nowClose, boolean needSort) throws Exception {
+    private void eachSaveToDisk(long[] valuesToSort, FileOutputStream out, boolean nowClose, boolean needSort) throws Exception {
         if (needSort) {
-            printTimeAndMemory("saveToDisk", "at the beginning of Arrays.sort");
+            long startSortTime = System.currentTimeMillis();
             Arrays.sort(valuesToSort);
-            printTimeAndMemory("saveToDisk", "at the end of Arrays.sort");
+            printTimeAndMemory("eachSaveToDisk-Arrays.sort", "Arrays.sort ended",
+                    startSortTime, System.currentTimeMillis());
         }
+        long startTime = System.currentTimeMillis();
         byte[] bbuf = new byte[Buffer_CAP];
         int bbuf_position = 0;
         for (long l : valuesToSort) {
@@ -203,6 +209,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
             out.flush();
             out.close();
         }
+        printTimeAndMemory("eachSaveToDisk", "eachSaveToDisk ended", startTime, System.currentTimeMillis());
     }
 
     private LongBuffer getNumbers(FileChannel fileChannel, ByteBuffer byteBuffer) throws Exception {
