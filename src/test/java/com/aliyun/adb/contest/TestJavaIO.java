@@ -43,6 +43,18 @@ import java.nio.channels.FileChannel;
  * byteSize: 4096 Total Time: 0.096 sec
  * byteSize: 8192 Total Time: 0.06 sec
  *
+ *
+ * BufferReader and BufferWriter 的读写性能测试
+ * 通过测试明确了BufferReader/BufferWriter却是是有一个缓冲区，
+ * 默认是8192 byte，通过缓冲能有效的减少系统调用以及用户态和内核态的状态切换，
+ * 但是由于是按行读写并且是字符流，因此相比完全的可以完美控制4KB以及字节流还是
+ * 速度上稍弱一些。
+ *
+ * testBufferedReaderIO 读入100M大小的数据
+ * Total Time: 2.022 sec
+ *
+ * testBufferedWriterIO 写入100M大小的数据
+ * Total Time: 1.704 sec
  */
 public class TestJavaIO {
     // 100M文件
@@ -145,5 +157,53 @@ public class TestJavaIO {
         long endTime = System.currentTimeMillis();
         double spendTime = (endTime - startTime) / 1000.0;
         System.out.println("byteSize: " + byteSize + " Total Time: " + spendTime + " sec");
+    }
+
+    @Test
+    public void testBufferedReaderIO() throws Exception {
+        File source = new File("./tmp/BuffWriteTest.txt");
+        System.out.println("testBufferedReaderIO");
+        testBufferedReader(source);
+    }
+
+    private void testBufferedReader(File source) throws Exception {
+        long startTime = System.currentTimeMillis();
+
+        BufferedReader bufReader = new BufferedReader(new FileReader(source));
+
+        String rawRow;
+        while ((rawRow = bufReader.readLine()) != null) {
+
+        }
+        bufReader.close();
+
+        long endTime = System.currentTimeMillis();
+        double spendTime = (endTime - startTime) / 1000.0;
+        System.out.println("Total Time: " + spendTime + " sec");
+    }
+
+    @Test
+    public void testBufferedWriterIO() throws Exception {
+        File target = new File("./tmp/BuffWriteTest.txt");
+        int lineSize = (int) (0.5 * Math.pow(10, 8));
+        System.out.println("testBufferedWriterIO");
+        testBufferedWriter(target, lineSize);
+    }
+
+    private void testBufferedWriter(File target, int lineSize) throws Exception {
+        long startTime = System.currentTimeMillis();
+
+        BufferedWriter bufWriter = new BufferedWriter(new FileWriter(target));
+        String rawRow = "6\n";
+        int count = 0;
+        while (count < lineSize) {
+            bufWriter.write(rawRow);
+            count++;
+        }
+        bufWriter.close();
+
+        long endTime = System.currentTimeMillis();
+        double spendTime = (endTime - startTime) / 1000.0;
+        System.out.println("Total Time: " + spendTime + " sec");
     }
 }
