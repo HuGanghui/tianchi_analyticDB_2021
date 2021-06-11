@@ -21,7 +21,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
 //    private final int TOTAL_LINE = (int) (10000);
 //    private final int MAX_FILE_CAP = (int) (2500);
 
-    private final int Buffer_CAP = 8192;
+    private final int Buffer_CAP = 4096 * 8;
     /**
      *
      * The implementation must contain a public no-argument constructor.
