@@ -3,6 +3,9 @@ package com.aliyun.adb.contest;
 import com.aliyun.adb.contest.spi.AnalyticDB;
 
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
+import java.nio.channels.FileChannel;
 import java.util.*;
 
 import static com.aliyun.adb.contest.common.Utils.bytesToLong;
@@ -51,6 +54,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
 
     @Override
     public String quantile(String table, String column, double percentile) throws Exception {
+        printTimeAndMemory("quantile", "at the beginning of quantile func");
         String tableColumn = tableColumnKey(table, column);
         RandomAccessFile raf = new RandomAccessFile(sortedFileMap.get(tableColumn), "r");
         long offset = (long) (TOTAL_LINE * percentile - 1) * 8;
@@ -58,6 +62,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
         byte[] bbuf = new byte[8];
         raf.read(bbuf);
         raf.close();
+        printTimeAndMemory("quantile", "at the end of quantile func");
         return String.valueOf(bytesToLong(bbuf));
     }
 
@@ -97,7 +102,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
                 valuesToSortIndex = 0;
                 file_index++;
                 for (int i = 0; i < columnLength; i++) {
-                    saveToDisk(valuesToSort[i], outArray[i], true);
+                    saveToDisk(valuesToSort[i], outArray[i], true, true);
                     Date date = new Date();
                     System.out.println("date:" + date);
                     String tableColumn = tableColumnKey(table, columns[i]);
@@ -115,7 +120,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
             }
             long[] leftToSort = new long[valuesToSortIndex];
             System.arraycopy(valuesToSort[i], 0, leftToSort, 0, valuesToSortIndex);
-            saveToDisk(leftToSort, outArray[i], true);
+            saveToDisk(leftToSort, outArray[i], true, true);
         }
         reader.close();
     }
@@ -123,7 +128,9 @@ public class MergeSortAnalyticDB implements AnalyticDB {
     private void sort(String key, String workspaceDir) throws Exception {
         List<File> fileList = fileMap.get(key);
         int n = fileList.size();
-        FileInputStream[] fileIns = new FileInputStream[n];
+        FileChannel[] fileChannels = new FileChannel[n];
+        ByteBuffer[] byteBuffers = new ByteBuffer[n];
+        LongBuffer[] longBuffers = new LongBuffer[n];
         PriorityQueue<Pair> pq = new PriorityQueue<Pair>((o1, o2) -> {
             if (o1.value <= o2.value) {
                 return -1;
@@ -132,42 +139,50 @@ public class MergeSortAnalyticDB implements AnalyticDB {
             }
         });
         for (int i = 0; i < n; i++) {
-            fileIns[i] = new FileInputStream(fileList.get(i));
-            Long temp = getSingleNumber(fileIns[i]);
-            if (temp != null) {
-                pq.add(new Pair(i, temp));
+            fileChannels[i] = new FileInputStream(fileList.get(i)).getChannel();
+            byteBuffers[i] = ByteBuffer.allocate(Buffer_CAP);
+            longBuffers[i] = getNumbers(fileChannels[i], byteBuffers[i]);
+            if (longBuffers[i] != null && longBuffers[i].hasRemaining()) {
+                pq.add(new Pair(i, longBuffers[i].get()));
             }
         }
         long[] buf = new long[MAX_FILE_CAP];
-        List<Long> forTest = new ArrayList<>();
+        int buf_index = 0;
+//        List<Long> forTest = new ArrayList<>();
         File file = new File(workspaceDir, key + "_" + "sorted");
         sortedFileMap.put(key, file);
         FileOutputStream out = new FileOutputStream(file);
-        int buf_index = 0;
         while (!pq.isEmpty()) {
             Pair pair = pq.poll();
             buf[buf_index++] = pair.value;
-            forTest.add(pair.value);
+//            forTest.add(pair.value);
             if (buf_index == MAX_FILE_CAP) {
-                saveToDisk(buf, out, false);
+                saveToDisk(buf, out, false, false);
                 buf_index = 0;
             }
-            Long temp = getSingleNumber(fileIns[pair.insIndex]);
-            if (temp != null) {
-                pq.offer(new Pair(pair.insIndex, temp));
+            if (longBuffers[pair.insIndex].hasRemaining()) {
+                pq.offer(new Pair(pair.insIndex, longBuffers[pair.insIndex].get()));
+            } else {
+                longBuffers[pair.insIndex] =
+                        getNumbers(fileChannels[pair.insIndex], byteBuffers[pair.insIndex]);
+                if (longBuffers[pair.insIndex] != null && longBuffers[pair.insIndex].hasRemaining()) {
+                    pq.offer(new Pair(pair.insIndex, longBuffers[pair.insIndex].get()));
+                }
             }
         }
         if (buf_index != 0) {
             long[] leftToSort = new long[buf_index];
             System.arraycopy(buf, 0, leftToSort, 0, buf_index);
-            saveToDisk(leftToSort, out, true);
+            saveToDisk(leftToSort, out, true, false);
         }
     }
 
-    private void saveToDisk(long[] valuesToSort, FileOutputStream out, boolean nowClose) throws Exception {
-        printTimeAndMemory("saveToDisk", "at the beginning of Arrays.sort");
-        Arrays.sort(valuesToSort);
-        printTimeAndMemory("saveToDisk", "at the end of Arrays.sort");
+    private void saveToDisk(long[] valuesToSort, FileOutputStream out, boolean nowClose, boolean needSort) throws Exception {
+        if (needSort) {
+            printTimeAndMemory("saveToDisk", "at the beginning of Arrays.sort");
+            Arrays.sort(valuesToSort);
+            printTimeAndMemory("saveToDisk", "at the end of Arrays.sort");
+        }
         byte[] bbuf = new byte[Buffer_CAP];
         int bbuf_position = 0;
         for (long l : valuesToSort) {
@@ -190,14 +205,14 @@ public class MergeSortAnalyticDB implements AnalyticDB {
         }
     }
 
-    private Long getSingleNumber(FileInputStream ins) throws Exception {
-        byte[] bbuf = new byte[8];
-        int hasRead = 0;
-        if ((hasRead = ins.read(bbuf)) > 0) {
-            return bytesToLong(bbuf);
-        } else {
-            return null;
+    private LongBuffer getNumbers(FileChannel fileChannel, ByteBuffer byteBuffer) throws Exception {
+        LongBuffer longBuffer = null;
+        if (fileChannel.read(byteBuffer) != -1) {
+            byteBuffer.flip();
+            longBuffer = byteBuffer.asLongBuffer();
+            byteBuffer.clear();
         }
+        return longBuffer;
     }
 
     private class Pair {
