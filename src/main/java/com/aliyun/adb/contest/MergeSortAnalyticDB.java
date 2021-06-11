@@ -17,7 +17,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
     private Map<String, List<File>> fileMap = new HashMap<>();
     private Map<String, File> sortedFileMap = new HashMap<>();
     // 每个文件可保存的最大行数
-    private final int MAX_FILE_CAP = (int) (1.5 * Math.pow(10, 8));
+    private final int MAX_FILE_CAP = (int) (0.75 * Math.pow(10, 8));
     private final int TOTAL_LINE = (int) (3 * Math.pow(10, 8));
 //    private final int TOTAL_LINE = (int) (10000);
 //    private final int MAX_FILE_CAP = (int) (2500);
@@ -61,7 +61,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
         byte[] bbuf = new byte[8];
         raf.read(bbuf);
         raf.close();
-        printTimeAndMemory("load", "load ended", startTime, System.currentTimeMillis());
+        printTimeAndMemory("quantile", "quantile ended", startTime, System.currentTimeMillis());
         return String.valueOf(bytesToLong(bbuf));
     }
 
@@ -176,6 +176,10 @@ public class MergeSortAnalyticDB implements AnalyticDB {
             long[] leftToSort = new long[buf_index];
             System.arraycopy(buf, 0, leftToSort, 0, buf_index);
             eachSaveToDisk(leftToSort, out, true, false);
+            for (int i = 0; i < n; i++) {
+                fileChannels[i].close();
+            }
+            buf = null;
         }
         printTimeAndMemory("sort", "sort ended", startTime, System.currentTimeMillis());
 
