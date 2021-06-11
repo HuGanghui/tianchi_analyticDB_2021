@@ -158,7 +158,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
             Pair pair = pq.poll();
             buf[buf_index++] = pair.value;
 //            forTest.add(pair.value);
-            if (buf_index == MAX_FILE_CAP) {
+            if (buf_index == buf.length) {
                 eachSaveToDisk(buf, out, false, false);
                 buf_index = 0;
             }
@@ -176,11 +176,14 @@ public class MergeSortAnalyticDB implements AnalyticDB {
             long[] leftToSort = new long[buf_index];
             System.arraycopy(buf, 0, leftToSort, 0, buf_index);
             eachSaveToDisk(leftToSort, out, true, false);
-            for (int i = 0; i < n; i++) {
-                fileChannels[i].close();
-            }
-            buf = null;
+        } else {
+            out.flush();
+            out.close();
         }
+        for (int i = 0; i < n; i++) {
+            fileChannels[i].close();
+        }
+        buf = null;
         printTimeAndMemory("sort", "sort ended", startTime, System.currentTimeMillis());
 
     }
