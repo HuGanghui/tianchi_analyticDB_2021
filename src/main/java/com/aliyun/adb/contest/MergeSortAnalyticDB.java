@@ -9,7 +9,6 @@ import java.nio.channels.FileChannel;
 import java.util.*;
 
 import static com.aliyun.adb.contest.common.Utils.bytesToLong;
-import static com.aliyun.adb.contest.common.Utils.longToBytes;
 import static com.aliyun.adb.contest.common.Utils.printTimeAndMemory;
 
 public class MergeSortAnalyticDB implements AnalyticDB {
@@ -82,12 +81,12 @@ public class MergeSortAnalyticDB implements AnalyticDB {
         long[][] valuesToSort = new long[columnLength][MAX_FILE_CAP];
         int valuesToSortIndex = 0;
         String rawRow;
-        FileOutputStream[] outArray = new FileOutputStream[columnLength];
+        FileChannel[] outChannels = new FileChannel[columnLength];
         for (int i = 0; i < columnLength; i++) {
             String tableColumn = tableColumnKey(table, columns[i]);
             File file = new File(workspaceDir, tableColumn + "_" + file_index);
             fileMap.get(tableColumn).add(file);
-            outArray[i] = new FileOutputStream(file);
+            outChannels[i] = new FileOutputStream(file).getChannel();
         }
 
         while ((rawRow = reader.readLine()) != null) {
@@ -102,13 +101,13 @@ public class MergeSortAnalyticDB implements AnalyticDB {
                 valuesToSortIndex = 0;
                 file_index++;
                 for (int i = 0; i < columnLength; i++) {
-                    eachSaveToDisk(valuesToSort[i], outArray[i], true, true);
+                    eachSaveToDisk(valuesToSort[i], outChannels[i], true, true);
                     Date date = new Date();
                     System.out.println("date:" + date);
                     String tableColumn = tableColumnKey(table, columns[i]);
                     File file = new File(workspaceDir, tableColumn + "_" + file_index);
                     fileMap.get(tableColumn).add(file);
-                    outArray[i] = new FileOutputStream(file);
+                    outChannels[i] = new FileOutputStream(file).getChannel();
                 }
             }
         }
@@ -119,7 +118,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
             }
             long[] leftToSort = new long[valuesToSortIndex];
             System.arraycopy(valuesToSort[i], 0, leftToSort, 0, valuesToSortIndex);
-            eachSaveToDisk(leftToSort, outArray[i], true, true);
+            eachSaveToDisk(leftToSort, outChannels[i], true, true);
         }
         reader.close();
         printTimeAndMemory("saveToDisk", "saveTodisk ended", startTime, System.currentTimeMillis());
@@ -153,13 +152,13 @@ public class MergeSortAnalyticDB implements AnalyticDB {
 //        List<Long> forTest = new ArrayList<>();
         File file = new File(workspaceDir, key + "_" + "sorted");
         sortedFileMap.put(key, file);
-        FileOutputStream out = new FileOutputStream(file);
+        FileChannel outChannel = new FileOutputStream(file).getChannel();
         while (!pq.isEmpty()) {
             Pair pair = pq.poll();
             buf[buf_index++] = pair.value;
 //            forTest.add(pair.value);
             if (buf_index == buf.length) {
-                eachSaveToDisk(buf, out, false, false);
+                eachSaveToDisk(buf, outChannel, false, false);
                 buf_index = 0;
             }
             if (longBuffers[pair.insIndex].hasRemaining()) {
@@ -175,10 +174,9 @@ public class MergeSortAnalyticDB implements AnalyticDB {
         if (buf_index != 0) {
             long[] leftToSort = new long[buf_index];
             System.arraycopy(buf, 0, leftToSort, 0, buf_index);
-            eachSaveToDisk(leftToSort, out, true, false);
+            eachSaveToDisk(leftToSort, outChannel, true, false);
         } else {
-            out.flush();
-            out.close();
+            outChannel.close();
         }
         for (int i = 0; i < n; i++) {
             fileChannels[i].close();
@@ -188,7 +186,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
 
     }
 
-    private void eachSaveToDisk(long[] valuesToSort, FileOutputStream out, boolean nowClose, boolean needSort) throws Exception {
+    private void eachSaveToDisk(long[] valuesToSort, FileChannel outChannel, boolean nowClose, boolean needSort) throws Exception {
         if (needSort) {
             long startSortTime = System.currentTimeMillis();
             Arrays.sort(valuesToSort);
@@ -196,25 +194,22 @@ public class MergeSortAnalyticDB implements AnalyticDB {
                     startSortTime, System.currentTimeMillis());
         }
         long startTime = System.currentTimeMillis();
-        byte[] bbuf = new byte[Buffer_CAP];
-        int bbuf_position = 0;
+        ByteBuffer bbuf = ByteBuffer.allocate(Buffer_CAP);
         for (long l : valuesToSort) {
-            byte[] temp = longToBytes(l);
-            System.arraycopy(temp, 0, bbuf, bbuf_position, temp.length);
-            bbuf_position += temp.length;
-            if (bbuf_position == Buffer_CAP) {
-                out.write(bbuf);
-                bbuf_position = 0;
+            bbuf.putLong(l);
+            if (bbuf.position() == Buffer_CAP) {
+                bbuf.flip();
+                outChannel.write(bbuf);
+                bbuf.clear();
             }
         }
-        if (bbuf_position != 0) {
-            byte[] temp = new byte[bbuf_position];
-            System.arraycopy(bbuf, 0, temp, 0, bbuf_position);
-            out.write(temp);
+        if (bbuf.position() != 0) {
+            bbuf.flip();
+            outChannel.write(bbuf);
+            bbuf.clear();
         }
         if (nowClose) {
-            out.flush();
-            out.close();
+            outChannel.close();
         }
         printTimeAndMemory("eachSaveToDisk", "eachSaveToDisk ended", startTime, System.currentTimeMillis());
     }
