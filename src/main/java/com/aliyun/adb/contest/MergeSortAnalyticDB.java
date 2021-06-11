@@ -19,7 +19,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
 //    private final int TOTAL_LINE = (int) (10000);
 //    private final int MAX_FILE_CAP = (int) (2500);
 
-    private final int Buffer_CAP = 4096;
+    private final int Buffer_CAP = 8192;
     /**
      *
      * The implementation must contain a public no-argument constructor.
@@ -31,7 +31,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
     @Override
     public void load(String tpchDataFileDir, String workspaceDir) throws Exception {
         File dir = new File(tpchDataFileDir);
-        printTimeAndMemory("load", "at the beginning");
+        printTimeAndMemory("load", "at the beginning of load func");
 
         for (File dataFile : dir.listFiles()) {
             System.out.println("Start loading table " + dataFile.getName());
@@ -46,6 +46,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
             sort(key, workspaceDir);
             printTimeAndMemory("load", "in the middle of two sort");
         }
+        printTimeAndMemory("load", "at the end of load func");
     }
 
     @Override
@@ -164,7 +165,9 @@ public class MergeSortAnalyticDB implements AnalyticDB {
     }
 
     private void saveToDisk(long[] valuesToSort, FileOutputStream out, boolean nowClose) throws Exception {
+        printTimeAndMemory("saveToDisk", "at the beginning of Arrays.sort");
         Arrays.sort(valuesToSort);
+        printTimeAndMemory("saveToDisk", "at the end of Arrays.sort");
         byte[] bbuf = new byte[Buffer_CAP];
         int bbuf_position = 0;
         for (long l : valuesToSort) {
