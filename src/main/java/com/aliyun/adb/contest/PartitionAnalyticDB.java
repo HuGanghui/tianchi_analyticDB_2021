@@ -7,11 +7,9 @@ import com.aliyun.adb.contest.partition.HighTenPartitioner;
 import com.aliyun.adb.contest.partition.Partitionable;
 import com.aliyun.adb.contest.spi.AnalyticDB;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileReader;
+import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.*;
 
@@ -48,7 +46,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
         File dir = new File(tpchDataFileDir);
 
         for (File dataFile : dir.listFiles()) {
-            saveToDisk2(workspaceDir, dataFile);
+            saveToDisk3(workspaceDir, dataFile);
         }
         printTimeAndMemory("load", "load ended", startTime, System.currentTimeMillis());
     }
@@ -61,6 +59,43 @@ public class PartitionAnalyticDB implements AnalyticDB {
             String temp = new String(byteBuffer.array());
             temp.split(",");
             byteBuffer.clear();
+        }
+        readFileChannel.close();
+    }
+
+    private void saveToDisk3(String workspaceDir, File dataFile) throws Exception {
+        FileChannel readFileChannel = new FileInputStream(dataFile).getChannel();
+        ByteBuffer byteBuffer = ByteBuffer.allocate(Constant.Buffer_CAP);
+
+        FileChannel fileChannel = new RandomAccessFile(dataFile, "rw").getChannel();
+        long fileSize = fileChannel.size();
+        int bufferCount = (int) Math.ceil((double) fileSize / (double) Integer.MAX_VALUE);
+        MappedByteBuffer[] mappedByteBuffers = new MappedByteBuffer[bufferCount];
+        long preLength = 0;
+        long regionSize = Integer.MAX_VALUE;
+        for (int i = 0; i < bufferCount; i++) {
+            if (fileSize - preLength < Integer.MAX_VALUE) {
+                regionSize = fileSize - preLength;
+            }
+            mappedByteBuffers[i] = fileChannel.map(FileChannel.MapMode.READ_ONLY, preLength, regionSize);
+            preLength += regionSize;
+        }
+        int byteBufferSize = 4096;
+        int bufferCountIndex = 0;
+        byte[] bbuf = new byte[byteBufferSize];
+        while (bufferCountIndex < bufferCount) {
+            MappedByteBuffer mappedByteBuffer = mappedByteBuffers[bufferCountIndex];
+            while (mappedByteBuffer.limit()
+                    - mappedByteBuffer.position() > byteBufferSize) {
+                mappedByteBuffer.get(bbuf);
+                String s = new String(bbuf);
+//            System.out.println(s);
+            }
+            bbuf = new byte[mappedByteBuffer.limit()
+                    - mappedByteBuffer.position()];
+            mappedByteBuffer.get(bbuf);
+            String s = new String(bbuf);
+            bufferCountIndex++;
         }
         readFileChannel.close();
     }
