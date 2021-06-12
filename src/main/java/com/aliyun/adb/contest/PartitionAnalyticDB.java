@@ -20,7 +20,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
     private Map<String, int[]> dataLogSizePrefixSumMap = new HashMap<>();
     private volatile Partitionable partitionable;
     // partition num
-    private final int partitionNum = 1 << 10;
+    private final int partitionNum = 1 << 9;
 
     // 每个文件可保存的最大行数
     private final int TOTAL_LINE = (int) (3 * Math.pow(10, 8));
