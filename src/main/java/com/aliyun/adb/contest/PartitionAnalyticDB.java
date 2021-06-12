@@ -68,6 +68,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
             dataLogSizePrefixSumMap.put(tableColumns[i], dataLogSizePrefixSum);
         }
 
+        long startWriteTime = System.currentTimeMillis();
         String rawRow;
         while ((rawRow = reader.readLine()) != null) {
             String[] row = rawRow.split(",");
@@ -77,6 +78,8 @@ public class PartitionAnalyticDB implements AnalyticDB {
                 dataLogMap.get(tableColumns[i])[partition].write(l);
             }
         }
+        printTimeAndMemory("saveToDisk", "write into partitionDataLog",
+                startWriteTime, System.currentTimeMillis());
 
         for (int i = 0; i < columnLength; i++) {
             String key = tableColumns[i];

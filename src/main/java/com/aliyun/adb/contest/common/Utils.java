@@ -1,7 +1,6 @@
 package com.aliyun.adb.contest.common;
 
 import java.nio.ByteBuffer;
-import java.util.Date;
 
 public class Utils {
     public static byte[] longToBytes(long x) {
