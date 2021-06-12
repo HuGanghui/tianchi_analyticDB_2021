@@ -103,6 +103,18 @@ public class TestSimpleAnalyticDB {
         }
     }
 
+    @Test
+    public void testPartitionAnalyticDB() {
+        try {
+            PartitionAnalyticDB partitionAnalyticDB = new PartitionAnalyticDB();
+            partitionAnalyticDB.load(test_data_dir, "./tmp");
+            Map<String, String> resultMap = getResult(test_result_path);
+            commonTest(resultMap, partitionAnalyticDB);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void commonTest(Map<String, String> resultMap, AnalyticDB db) throws Exception {
         for (String key : resultMap.keySet()) {
             String[] columns = key.split(SPLITE);
