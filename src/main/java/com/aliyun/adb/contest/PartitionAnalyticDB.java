@@ -9,7 +9,10 @@ import com.aliyun.adb.contest.spi.AnalyticDB;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.*;
 
 import static com.aliyun.adb.contest.common.Utils.longToBytes;
@@ -45,9 +48,19 @@ public class PartitionAnalyticDB implements AnalyticDB {
         File dir = new File(tpchDataFileDir);
 
         for (File dataFile : dir.listFiles()) {
-            saveToDisk(workspaceDir, dataFile);
+            saveToDisk2(workspaceDir, dataFile);
         }
         printTimeAndMemory("load", "load ended", startTime, System.currentTimeMillis());
+    }
+
+    private void saveToDisk2(String workspaceDir, File dataFile) throws Exception {
+        FileChannel readFileChannel = new FileInputStream(dataFile).getChannel();
+        ByteBuffer byteBuffer = ByteBuffer.allocate(Constant.Buffer_CAP);
+        while (readFileChannel.read(byteBuffer) != -1) {
+            byteBuffer.flip();
+            byteBuffer.clear();
+        }
+        readFileChannel.close();
     }
 
     private void saveToDisk(String workspaceDir, File dataFile) throws Exception {
@@ -74,25 +87,25 @@ public class PartitionAnalyticDB implements AnalyticDB {
         String rawRow;
         while ((rawRow = reader.readLine()) != null) {
             String[] row = rawRow.split(",");
-//            for (int i = 0; i < columnLength; i++) {
-//                Long l = new Long(row[i]);
-//                int partition = partitionable.getPartition(longToBytes(l));
-//                final DataLog dataLog = dataLogMap.get(tableColumns[i])[partition];
-//                dataLog.write(l);
-//            }
+            for (int i = 0; i < columnLength; i++) {
+                Long l = new Long(row[i]);
+                int partition = partitionable.getPartition(longToBytes(l));
+                final DataLog dataLog = dataLogMap.get(tableColumns[i])[partition];
+                dataLog.write(l);
+            }
         }
         printTimeAndMemory("saveToDisk", "write into partitionDataLog",
                 startWriteTime, System.currentTimeMillis());
 
-//        for (int i = 0; i < columnLength; i++) {
-//            String key = tableColumns[i];
-//            dataLogSizePrefixSumMap.get(key)[0] =
-//                    dataLogMap.get(tableColumns[i])[0].destroy();
-//            for (int j = 1; j < partitionNum; j++) {
-//                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
-//                        dataLogMap.get(tableColumns[i])[j].destroy();
-//            }
-//        }
+        for (int i = 0; i < columnLength; i++) {
+            String key = tableColumns[i];
+            dataLogSizePrefixSumMap.get(key)[0] =
+                    dataLogMap.get(tableColumns[i])[0].destroy();
+            for (int j = 1; j < partitionNum; j++) {
+                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
+                        dataLogMap.get(tableColumns[i])[j].destroy();
+            }
+        }
         reader.close();
         printTimeAndMemory("saveToDisk", "saveToDisk ended", startTime, System.currentTimeMillis());
     }
