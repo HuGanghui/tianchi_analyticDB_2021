@@ -67,7 +67,7 @@ public class MergeSortAnalyticDB implements AnalyticDB {
     private void saveToDisk(String workspaceDir, File dataFile) throws Exception {
         long startTime = System.currentTimeMillis();
 
-        BufferedReader reader = new BufferedReader(new FileReader(dataFile));
+        BufferedReader reader = new BufferedReader(new FileReader(dataFile), Buffer_CAP);
         String table = dataFile.getName();
         String[] columns = reader.readLine().split(",");
         final int columnLength = columns.length;
