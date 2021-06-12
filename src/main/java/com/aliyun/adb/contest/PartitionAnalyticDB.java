@@ -1,6 +1,7 @@
 package com.aliyun.adb.contest;
 
 import com.aliyun.adb.contest.common.Constant;
+import com.aliyun.adb.contest.common.Utils;
 import com.aliyun.adb.contest.data.DataLog;
 import com.aliyun.adb.contest.partition.HighTenPartitioner;
 import com.aliyun.adb.contest.partition.Partitionable;
@@ -22,7 +23,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
     private Map<String, DataLog[]> dataLogMap = new HashMap<>();
     private Map<String, int[]> dataLogSizePrefixSumMap = new HashMap<>();
     private volatile Partitionable partitionable;
-    private final ExecutorService pool;
+
     // partition num
     private final int partitionNum = 1 << 8;
 
@@ -36,7 +37,6 @@ public class PartitionAnalyticDB implements AnalyticDB {
      */
     public PartitionAnalyticDB() {
         partitionable = new HighTenPartitioner();
-        pool = Executors.newFixedThreadPool(4);
     }
 
     @Override
@@ -81,13 +81,14 @@ public class PartitionAnalyticDB implements AnalyticDB {
                 Long l = new Long(row[i]);
                 int partition = partitionable.getPartition(longToBytes(l));
                 final DataLog dataLog = dataLogMap.get(tableColumns[i])[partition];
-                pool.execute(() -> {
-                    try {
-                        dataLog.write(l);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                });
+//                Utils.pool.execute(() -> {
+//                    try {
+//                        dataLog.write(l);
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                    }
+//                });
+                dataLog.write(l);
             }
         }
         printTimeAndMemory("saveToDisk", "write into partitionDataLog",

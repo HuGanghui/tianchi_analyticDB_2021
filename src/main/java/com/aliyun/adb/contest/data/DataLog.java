@@ -13,14 +13,16 @@ public class DataLog {
     private File file;
     private FileChannel fileChannel;
     private ByteBuffer byteBuffer;
+    private ByteBuffer cacheByteBuffer;
 
     public void init(String workspaceDir, String fileName, int no) throws IOException  {
         this.file = new File(workspaceDir, fileName + "_" + no);
         this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
         this.byteBuffer = ByteBuffer.allocate(Constant.Buffer_CAP);
+        this.cacheByteBuffer = ByteBuffer.allocate(Constant.Long_Size * 10000);
     }
 
-    public synchronized long[] read() throws Exception {
+    public long[] read() throws Exception {
         FileChannel readRaf = new RandomAccessFile(this.file, "r").getChannel();
         ByteBuffer byteBuffer = ByteBuffer.allocate(Constant.Buffer_CAP);
         LongBuffer longBuffer = null;
@@ -38,12 +40,24 @@ public class DataLog {
         return longValues;
     }
 
-    public synchronized void write(long data) throws Exception {
-        byteBuffer.putLong(data);
-        if (byteBuffer.position() == byteBuffer.capacity()) {
-            byteBuffer.flip();
-            fileChannel.write(byteBuffer);
-            byteBuffer.clear();
+    public void write(long data) throws Exception {
+        cacheByteBuffer.putLong(data);
+        if (cacheByteBuffer.position() == cacheByteBuffer.capacity()) {
+            cacheByteBuffer.flip();
+            while (cacheByteBuffer.hasRemaining()) {
+                byteBuffer.putLong(cacheByteBuffer.getLong());
+                if (byteBuffer.position() == byteBuffer.capacity()) {
+                    byteBuffer.flip();
+                    fileChannel.write(byteBuffer);
+                    byteBuffer.clear();
+                }
+            }
+            if (byteBuffer.position() != 0) {
+                byteBuffer.flip();
+                fileChannel.write(byteBuffer);
+                byteBuffer.clear();
+            }
+            cacheByteBuffer.clear();
         }
     }
 
@@ -60,14 +74,27 @@ public class DataLog {
         }
     }
 
-    public synchronized int destroy() throws IOException {
-        if (byteBuffer.position() != 0) {
-            byteBuffer.flip();
-            fileChannel.write(byteBuffer);
-            byteBuffer.clear();
+    public int destroy() throws IOException {
+        if (cacheByteBuffer.position() != 0) {
+            cacheByteBuffer.flip();
+            while (cacheByteBuffer.hasRemaining()) {
+                byteBuffer.putLong(cacheByteBuffer.getLong());
+                if (byteBuffer.position() == byteBuffer.capacity()) {
+                    byteBuffer.flip();
+                    fileChannel.write(byteBuffer);
+                    byteBuffer.clear();
+                }
+            }
+            if (byteBuffer.position() != 0) {
+                byteBuffer.flip();
+                fileChannel.write(byteBuffer);
+                byteBuffer.clear();
+            }
+            cacheByteBuffer.clear();
         }
         int fileSize = getFileLength();
         this.byteBuffer = null;
+        this.cacheByteBuffer = null;
         if (this.fileChannel != null) {
             this.fileChannel.close();
         }
