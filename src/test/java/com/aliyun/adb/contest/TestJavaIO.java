@@ -57,8 +57,14 @@ import java.nio.channels.FileChannel;
  * testBufferedWriterIO 写入100M大小的数据
  * Total Time: 1.704 sec
  *
- * testMMAPReadIO 读入100M大小的数据
- * Total Time: 2.023 sec
+ * TestFileChannelReadIO 读入11G大小的数据
+ * byteSize: 4096 Total Time: 20.922 sec
+ *
+ * testBufferedReaderIO 读入11G大小的数据
+ * Total Time: 34.66 sec
+ *
+ * testMMAPReadIO 读入11G大小的数据
+ * Total Time: 40.312 sec
  */
 public class TestJavaIO {
     // 100M文件
@@ -104,13 +110,13 @@ public class TestJavaIO {
 
     @Test
     public void testFileChannelReadIO() throws Exception {
-        File source = new File(inputFileName);
+        File source = new File("./tmp/BuffWriteTest.txt");
         System.out.println("TestFileChannelReadIO");
-        testFileChannelRead(source, 8);
-        testFileChannelRead(source, 512);
-        testFileChannelRead(source, 1024);
+//        testFileChannelRead(source, 8);
+//        testFileChannelRead(source, 512);
+//        testFileChannelRead(source, 1024);
         testFileChannelRead(source, 4096);
-        testFileChannelRead(source, 4096 * 2);
+//        testFileChannelRead(source, 4096 * 2);
 
     }
 
@@ -124,6 +130,7 @@ public class TestJavaIO {
 
         while (fcin.read(bbuff) != -1) {
             bbuff.flip();
+            new String(bbuff.array());
             bbuff.clear();
         }
         fcin.close();
@@ -197,7 +204,7 @@ public class TestJavaIO {
     @Test
     public void testBufferedWriterIO() throws Exception {
         File target = new File("./tmp/BuffWriteTest.txt");
-        int lineSize = (int) (0.5 * Math.pow(10, 8));
+        int lineSize = (int) (3 * Math.pow(10, 8));
         System.out.println("testBufferedWriterIO");
         testBufferedWriter(target, lineSize);
     }
@@ -206,7 +213,7 @@ public class TestJavaIO {
         long startTime = System.currentTimeMillis();
 
         BufferedWriter bufWriter = new BufferedWriter(new FileWriter(target));
-        String rawRow = "6\n";
+        String rawRow = "6696888034212407769,3763348951749677456\n";
         int count = 0;
         while (count < lineSize) {
             bufWriter.write(rawRow);
@@ -223,14 +230,41 @@ public class TestJavaIO {
     public void testMMAPReadIO() throws Exception {
         File source = new File("./tmp/BuffWriteTest.txt");
         System.out.println("testMMAPReadIO");
-        testBufferedReader(source);
+        testMMAPRead(source);
     }
 
     public void testMMAPRead(File source) throws Exception {
         long startTime = System.currentTimeMillis();
         FileChannel fileChannel = new RandomAccessFile(source, "rw").getChannel();
-        MappedByteBuffer mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY,
-                0, fileChannel.size());
+        long fileSize = fileChannel.size();
+        int bufferCount = (int) Math.ceil((double) fileSize / (double) Integer.MAX_VALUE);
+        MappedByteBuffer[] mappedByteBuffers = new MappedByteBuffer[bufferCount];
+        long preLength = 0;
+        long regionSize = Integer.MAX_VALUE;
+        for (int i = 0; i < bufferCount; i++) {
+            if (fileSize - preLength < Integer.MAX_VALUE) {
+                regionSize = fileSize - preLength;
+            }
+            mappedByteBuffers[i] = fileChannel.map(FileChannel.MapMode.READ_ONLY, preLength, regionSize);
+            preLength += regionSize;
+        }
+        int byteBufferSize = 4096;
+        int bufferCountIndex = 0;
+        byte[] bbuf = new byte[byteBufferSize];
+        while (bufferCountIndex < bufferCount) {
+            MappedByteBuffer mappedByteBuffer = mappedByteBuffers[bufferCountIndex];
+            while (mappedByteBuffer.limit()
+                    - mappedByteBuffer.position() > byteBufferSize) {
+                mappedByteBuffer.get(bbuf);
+                String s = new String(bbuf);
+//            System.out.println(s);
+            }
+            bbuf = new byte[mappedByteBuffer.limit()
+                    - mappedByteBuffer.position()];
+            mappedByteBuffer.get(bbuf);
+            String s = new String(bbuf);
+            bufferCountIndex++;
+        }
 
         long endTime = System.currentTimeMillis();
         double spendTime = (endTime - startTime) / 1000.0;
