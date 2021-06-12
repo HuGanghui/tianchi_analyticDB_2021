@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
 /**
@@ -55,11 +56,22 @@ import java.nio.channels.FileChannel;
  *
  * testBufferedWriterIO 写入100M大小的数据
  * Total Time: 1.704 sec
+ *
+ * testMMAPReadIO 读入100M大小的数据
+ * Total Time: 2.023 sec
  */
 public class TestJavaIO {
     // 100M文件
     private final String inputFileName =
             "/Users/hgh/Downloads/my_file/公开数据集/时间序列异常检测数据集/AIOps数据集/KPI异常检测决赛数据集/phase2_ground_truth.hdf";
+
+    // 600M文件
+    private final String inputFileName2 =
+            "/Users/hgh/Downloads/my_file/Pycharm_project/TraceAD/data/system-b/trace/trace_0303.csv";
+
+    // 2.3G文件
+    private final String inputFileName3 =
+            "/Users/hgh/Downloads/my_file/Pycharm_project/TraceAD/data/system-b/trace/trace_0311.csv";
 
     @Test
     public void testFileInputStreamIO() throws Exception {
@@ -201,6 +213,24 @@ public class TestJavaIO {
             count++;
         }
         bufWriter.close();
+
+        long endTime = System.currentTimeMillis();
+        double spendTime = (endTime - startTime) / 1000.0;
+        System.out.println("Total Time: " + spendTime + " sec");
+    }
+
+    @Test
+    public void testMMAPReadIO() throws Exception {
+        File source = new File("./tmp/BuffWriteTest.txt");
+        System.out.println("testMMAPReadIO");
+        testBufferedReader(source);
+    }
+
+    public void testMMAPRead(File source) throws Exception {
+        long startTime = System.currentTimeMillis();
+        FileChannel fileChannel = new RandomAccessFile(source, "rw").getChannel();
+        MappedByteBuffer mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY,
+                0, fileChannel.size());
 
         long endTime = System.currentTimeMillis();
         double spendTime = (endTime - startTime) / 1000.0;
