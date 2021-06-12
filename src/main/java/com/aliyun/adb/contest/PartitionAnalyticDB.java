@@ -74,25 +74,25 @@ public class PartitionAnalyticDB implements AnalyticDB {
         String rawRow;
         while ((rawRow = reader.readLine()) != null) {
             String[] row = rawRow.split(",");
-            for (int i = 0; i < columnLength; i++) {
-                Long l = new Long(row[i]);
-                int partition = partitionable.getPartition(longToBytes(l));
-                final DataLog dataLog = dataLogMap.get(tableColumns[i])[partition];
-                dataLog.write(l);
-            }
+//            for (int i = 0; i < columnLength; i++) {
+//                Long l = new Long(row[i]);
+//                int partition = partitionable.getPartition(longToBytes(l));
+//                final DataLog dataLog = dataLogMap.get(tableColumns[i])[partition];
+//                dataLog.write(l);
+//            }
         }
         printTimeAndMemory("saveToDisk", "write into partitionDataLog",
                 startWriteTime, System.currentTimeMillis());
 
-        for (int i = 0; i < columnLength; i++) {
-            String key = tableColumns[i];
-            dataLogSizePrefixSumMap.get(key)[0] =
-                    dataLogMap.get(tableColumns[i])[0].destroy();
-            for (int j = 1; j < partitionNum; j++) {
-                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
-                        dataLogMap.get(tableColumns[i])[j].destroy();
-            }
-        }
+//        for (int i = 0; i < columnLength; i++) {
+//            String key = tableColumns[i];
+//            dataLogSizePrefixSumMap.get(key)[0] =
+//                    dataLogMap.get(tableColumns[i])[0].destroy();
+//            for (int j = 1; j < partitionNum; j++) {
+//                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
+//                        dataLogMap.get(tableColumns[i])[j].destroy();
+//            }
+//        }
         reader.close();
         printTimeAndMemory("saveToDisk", "saveToDisk ended", startTime, System.currentTimeMillis());
     }
