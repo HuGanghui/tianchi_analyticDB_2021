@@ -106,7 +106,13 @@ public class PartitionAnalyticDB implements AnalyticDB {
         long[] values = dataLog.read();
         Arrays.sort(values);
         printTimeAndMemory("quantile", "quantile ended", startTime, System.currentTimeMillis());
-        return String.valueOf(values[(targetPercentile - prefixSum[dataLogIndex-1]) - 1]);
+        String result = null;
+        if (dataLogIndex == 0) {
+            result = String.valueOf(values[targetPercentile] - 1);
+        } else {
+            result = String.valueOf(values[(targetPercentile - prefixSum[dataLogIndex-1]) - 1]);
+        }
+        return result;
     }
 
     private int findFirstLargerNumIndex(int[] array, int num) {
