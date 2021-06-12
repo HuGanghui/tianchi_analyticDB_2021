@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
 import java.nio.channels.FileChannel;
 
 public class DataLog {
@@ -25,7 +24,6 @@ public class DataLog {
     public long[] read() throws Exception {
         FileChannel readRaf = new RandomAccessFile(this.file, "r").getChannel();
         ByteBuffer byteBuffer = ByteBuffer.allocate(Constant.Buffer_CAP);
-        LongBuffer longBuffer = null;
         long[] longValues = new long[getFileLength(readRaf)];
         int index = 0;
         while (readRaf.read(byteBuffer) != -1) {
@@ -40,7 +38,7 @@ public class DataLog {
         return longValues;
     }
 
-    public void write(long data) throws Exception {
+    public synchronized void write(long data) throws Exception {
         cacheByteBuffer.putLong(data);
         if (cacheByteBuffer.position() == cacheByteBuffer.capacity()) {
             cacheByteBuffer.flip();
@@ -74,7 +72,7 @@ public class DataLog {
         }
     }
 
-    public int destroy() throws IOException {
+    public synchronized int destroy() throws IOException {
         if (cacheByteBuffer.position() != 0) {
             cacheByteBuffer.flip();
             while (cacheByteBuffer.hasRemaining()) {

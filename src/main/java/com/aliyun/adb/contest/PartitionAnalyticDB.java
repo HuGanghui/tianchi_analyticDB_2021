@@ -11,9 +11,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.*;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static com.aliyun.adb.contest.common.Utils.longToBytes;
 import static com.aliyun.adb.contest.common.Utils.printTimeAndMemory;
@@ -81,13 +78,13 @@ public class PartitionAnalyticDB implements AnalyticDB {
                 Long l = new Long(row[i]);
                 int partition = partitionable.getPartition(longToBytes(l));
                 final DataLog dataLog = dataLogMap.get(tableColumns[i])[partition];
-//                Utils.pool.execute(() -> {
-//                    try {
-//                        dataLog.write(l);
-//                    } catch (Exception e) {
-//                        e.printStackTrace();
-//                    }
-//                });
+                Utils.pool.execute(() -> {
+                    try {
+                        dataLog.write(l);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
                 dataLog.write(l);
             }
         }
