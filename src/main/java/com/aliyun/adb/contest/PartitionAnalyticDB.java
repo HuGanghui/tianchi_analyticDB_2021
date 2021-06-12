@@ -78,13 +78,6 @@ public class PartitionAnalyticDB implements AnalyticDB {
                 Long l = new Long(row[i]);
                 int partition = partitionable.getPartition(longToBytes(l));
                 final DataLog dataLog = dataLogMap.get(tableColumns[i])[partition];
-                Utils.pool.execute(() -> {
-                    try {
-                        dataLog.write(l);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                });
                 dataLog.write(l);
             }
         }
