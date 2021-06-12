@@ -58,6 +58,8 @@ public class PartitionAnalyticDB implements AnalyticDB {
         ByteBuffer byteBuffer = ByteBuffer.allocate(Constant.Buffer_CAP);
         while (readFileChannel.read(byteBuffer) != -1) {
             byteBuffer.flip();
+            String temp = new String(byteBuffer.array());
+            temp.split(",");
             byteBuffer.clear();
         }
         readFileChannel.close();
