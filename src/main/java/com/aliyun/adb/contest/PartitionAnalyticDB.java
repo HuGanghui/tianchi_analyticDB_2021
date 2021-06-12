@@ -10,6 +10,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static com.aliyun.adb.contest.common.Utils.longToBytes;
 import static com.aliyun.adb.contest.common.Utils.printTimeAndMemory;
@@ -19,6 +22,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
     private Map<String, DataLog[]> dataLogMap = new HashMap<>();
     private Map<String, int[]> dataLogSizePrefixSumMap = new HashMap<>();
     private volatile Partitionable partitionable;
+    private final ExecutorService pool;
     // partition num
     private final int partitionNum = 1 << 8;
 
@@ -32,6 +36,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
      */
     public PartitionAnalyticDB() {
         partitionable = new HighTenPartitioner();
+        pool = Executors.newFixedThreadPool(4);
     }
 
     @Override
@@ -75,7 +80,14 @@ public class PartitionAnalyticDB implements AnalyticDB {
             for (int i = 0; i < columnLength; i++) {
                 Long l = new Long(row[i]);
                 int partition = partitionable.getPartition(longToBytes(l));
-                dataLogMap.get(tableColumns[i])[partition].write(l);
+                final DataLog dataLog = dataLogMap.get(tableColumns[i])[partition];
+                pool.execute(() -> {
+                    try {
+                        dataLog.write(l);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
             }
         }
         printTimeAndMemory("saveToDisk", "write into partitionDataLog",

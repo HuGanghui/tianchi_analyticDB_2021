@@ -20,7 +20,7 @@ public class DataLog {
         this.byteBuffer = ByteBuffer.allocate(Constant.Buffer_CAP);
     }
 
-    public long[] read() throws Exception {
+    public synchronized long[] read() throws Exception {
         FileChannel readRaf = new RandomAccessFile(this.file, "r").getChannel();
         ByteBuffer byteBuffer = ByteBuffer.allocate(Constant.Buffer_CAP);
         LongBuffer longBuffer = null;
@@ -38,7 +38,7 @@ public class DataLog {
         return longValues;
     }
 
-    public void write(long data) throws Exception {
+    public synchronized void write(long data) throws Exception {
         byteBuffer.putLong(data);
         if (byteBuffer.position() == byteBuffer.capacity()) {
             byteBuffer.flip();
@@ -47,7 +47,7 @@ public class DataLog {
         }
     }
 
-    public int getFileLength() {
+    private int getFileLength() {
         return getFileLength(this.fileChannel);
     }
 
@@ -60,7 +60,7 @@ public class DataLog {
         }
     }
 
-    public int destroy() throws IOException {
+    public synchronized int destroy() throws IOException {
         if (byteBuffer.position() != 0) {
             byteBuffer.flip();
             fileChannel.write(byteBuffer);
