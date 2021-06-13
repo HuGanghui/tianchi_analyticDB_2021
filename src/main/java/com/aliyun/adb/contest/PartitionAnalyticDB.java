@@ -9,6 +9,7 @@ import com.aliyun.adb.contest.spi.AnalyticDB;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static com.aliyun.adb.contest.common.Utils.longToBytes;
@@ -24,8 +25,8 @@ public class PartitionAnalyticDB implements AnalyticDB {
     private final int partitionNum = 1 << 8;
 
     // 每个文件可保存的最大行数
-//    private final int TOTAL_LINE = (int) (3 * Math.pow(10, 8));
-    private final int TOTAL_LINE = (int) (10000);
+    private final int TOTAL_LINE = (int) (3 * Math.pow(10, 8));
+//    private final int TOTAL_LINE = (int) (10000);
     /**
      *
      * The implementation must contain a public no-argument constructor.
@@ -72,21 +73,17 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
         FileChannel readFileChannel = new FileInputStream(dataFile).getChannel();
         ByteBuffer byteBuffer = ByteBuffer.allocate(Constant.Buffer_CAP);
-        Deque<Byte> deque = new LinkedList<>();
 
         long startWriteTime = System.currentTimeMillis();
 
-        byte[] bytes1 = new byte[30];
+        byte[] bytes1 = new byte[40];
         int byteIndex = 0;
         while (readFileChannel.read(byteBuffer) != -1) {
             byteBuffer.flip();
             while (byteBuffer.hasRemaining()){
                 byte cur = byteBuffer.get();
                 if (cur == 10 || cur == 44) {
-//                    for (int j = 0; j < bytes1.length; j++) {
-//                        bytes1[j] = deque.removeFirst();
-//                    }
-//                    String temp = new String(bytes1, 0, byteIndex);
+                    String temp = new String(bytes1, 0, byteIndex, StandardCharsets.US_ASCII);
                     byteIndex = 0;
 //                    try {
 //                        long l = Long.parseLong(temp);
@@ -104,7 +101,6 @@ public class PartitionAnalyticDB implements AnalyticDB {
 //                    }
                 } else {
                     bytes1[byteIndex++] = cur;
-//                    deque.addLast(cur);
                 }
             }
             byteBuffer.clear();
