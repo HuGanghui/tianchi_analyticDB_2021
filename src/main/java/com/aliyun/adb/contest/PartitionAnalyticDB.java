@@ -2,6 +2,7 @@ package com.aliyun.adb.contest;
 
 import com.aliyun.adb.contest.common.Constant;
 import com.aliyun.adb.contest.data.DataLog;
+import com.aliyun.adb.contest.partition.HighEightPartitioner;
 import com.aliyun.adb.contest.partition.HighTenPartitioner;
 import com.aliyun.adb.contest.partition.Partitionable;
 import com.aliyun.adb.contest.spi.AnalyticDB;
@@ -33,7 +34,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
      *
      */
     public PartitionAnalyticDB() {
-        partitionable = new HighTenPartitioner();
+        partitionable = new HighEightPartitioner();
     }
 
     @Override
@@ -78,6 +79,9 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
         byte[] bytes1 = new byte[40];
         int byteIndex = 0;
+        int index;
+        long l;
+        int partition;
         while (readFileChannel.read(byteBuffer) != -1) {
             byteBuffer.flip();
             while (byteBuffer.hasRemaining()){
@@ -86,14 +90,9 @@ public class PartitionAnalyticDB implements AnalyticDB {
                     String temp = new String(bytes1, 0, byteIndex, StandardCharsets.US_ASCII);
                     byteIndex = 0;
                     try {
-                        long l = Long.parseLong(temp);
-                        int partition = partitionable.getPartition(longToBytes(l));
-                        int index;
-                        if (cur == 44) {
-                            index = 0;
-                        } else {
-                            index = 1;
-                        }
+                        l = Long.parseLong(temp);
+                        partition = partitionable.getPartition(longToBytes(l));
+                        index = (cur == 44 ? 0 : 1);
                         final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
                         dataLog.write(l);
                     } catch (NumberFormatException e) {
@@ -147,7 +146,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
             String[] row = rawRow.split(",");
             for (int i = 0; i < columnLength; i++) {
                 Long l = new Long(row[i]);
-                int partition = partitionable.getPartition(longToBytes(l));
+                int partition = partitionable.getPartition(long2bytes(l));
                 final DataLog dataLog = dataLogMap.get(tableColumns[i])[partition];
                 dataLog.write(l);
             }

@@ -13,6 +13,12 @@ public class Utils {
         return buffer.array();
     }
 
+    private static byte[] long2bytes(long values) {
+        int offset = 64 - 8;
+        byte byteOne = (byte) ((values >> offset) & 0xff);
+        return new byte[]{byteOne};
+    }
+
     public static long bytesToLong(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.put(bytes);
