@@ -88,15 +88,16 @@ public class PartitionAnalyticDB implements AnalyticDB {
             while (byteBuffer.hasRemaining()){
                 byte cur = byteBuffer.get();
                 if (cur == 10 || cur == 44) {
-                    String temp = new String(bytes1, 0, byteIndex, StandardCharsets.US_ASCII);
-                    byteIndex = 0;
                     try {
-                        l = new Long(temp);
+                        l = convertToLong(bytes1, 0, byteIndex);
+                        byteIndex = 0;
                         partition = partitionable.getPartition(long2bytes(l));
                         index = (cur == 44 ? 0 : 1);
                         final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
                         dataLog.write(l);
                     } catch (NumberFormatException e) {
+                        String temp = new String(bytes1, 0, byteIndex, StandardCharsets.US_ASCII);
+                        byteIndex = 0;
                         System.out.println(temp);
                     }
                 } else {
@@ -119,6 +120,18 @@ public class PartitionAnalyticDB implements AnalyticDB {
         }
         readFileChannel.close();
         printTimeAndMemory("saveToDisk2", "saveToDisk ended", startTime, System.currentTimeMillis());
+    }
+
+    private long convertToLong(byte[] bytes, int startIndex, int endIndex) {
+        if (bytes[0] < 48 || bytes[0] > 57) {
+            throw new NumberFormatException();
+        }
+        int n = bytes.length;
+        long result = 0;
+        for (int i = startIndex; i < endIndex; i++) {
+            result = result * 10 + (bytes[i] - 48);
+        }
+        return result;
     }
 
     private void saveToDisk(String workspaceDir, File dataFile) throws Exception {
