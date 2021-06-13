@@ -123,6 +123,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
     }
 
     private long convertToLong(byte[] bytes, int startIndex, int endIndex) {
+        // ASCII convert to long
         if (bytes[0] < 48 || bytes[0] > 57) {
             throw new NumberFormatException();
         }

@@ -83,6 +83,9 @@ public class TestUtils {
 
     /**
      * testASCII2Long
+     * reference:
+     * https://stackoverflow.com/questions/9172402/fast-conversion-of-byte-containing-ascii-string-to-int-double-date-etc-witho/18908528#18908528
+     * https://en.wikipedia.org/wiki/ASCII
      *
      * time = (int) (6 * Math.pow(10, 7))
      *
