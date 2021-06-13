@@ -85,12 +85,12 @@ public class PartitionAnalyticDB implements AnalyticDB {
         int partition;
         while (readFileChannel.read(byteBuffer) != -1) {
             byteBuffer.flip();
-            while (byteBuffer.hasRemaining()){
-                byte cur = byteBuffer.get();
-                if (cur == 10 || cur == 44) {
+//            while (byteBuffer.hasRemaining()){
+//                byte cur = byteBuffer.get();
+//                if (cur == 10 || cur == 44) {
 //                    try {
 //                        l = convertToLong(bytes1, 0, byteIndex);
-                        byteIndex = 0;
+//                        byteIndex = 0;
 //                        partition = partitionable.getPartition(long2bytes(l));
 //                        index = (cur == 44 ? 0 : 1);
 //                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
@@ -100,10 +100,10 @@ public class PartitionAnalyticDB implements AnalyticDB {
 //                        byteIndex = 0;
 //                        System.out.println(temp);
 //                    }
-                } else {
-                    bytes1[byteIndex++] = cur;
-                }
-            }
+//                } else {
+//                    bytes1[byteIndex++] = cur;
+//                }
+//            }
             byteBuffer.clear();
         }
         printTimeAndMemory("saveToDisk2", "write into partitionDataLog",
