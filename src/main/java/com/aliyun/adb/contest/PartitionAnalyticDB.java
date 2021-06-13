@@ -24,8 +24,8 @@ public class PartitionAnalyticDB implements AnalyticDB {
     private final int partitionNum = 1 << 8;
 
     // 每个文件可保存的最大行数
-    private final int TOTAL_LINE = (int) (3 * Math.pow(10, 8));
-//    private final int TOTAL_LINE = (int) (10000);
+//    private final int TOTAL_LINE = (int) (3 * Math.pow(10, 8));
+    private final int TOTAL_LINE = (int) (10000);
     /**
      *
      * The implementation must contain a public no-argument constructor.
@@ -76,16 +76,18 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
         long startWriteTime = System.currentTimeMillis();
 
+        byte[] bytes1 = new byte[30];
+        int byteIndex = 0;
         while (readFileChannel.read(byteBuffer) != -1) {
             byteBuffer.flip();
             while (byteBuffer.hasRemaining()){
                 byte cur = byteBuffer.get();
                 if (cur == 10 || cur == 44) {
-                    byte[] bytes1 = new byte[deque.size()];
-                    for (int j = 0; j < bytes1.length; j++) {
-                        bytes1[j] = deque.removeFirst();
-                    }
-//                    String temp = new String(bytes1);
+//                    for (int j = 0; j < bytes1.length; j++) {
+//                        bytes1[j] = deque.removeFirst();
+//                    }
+//                    String temp = new String(bytes1, 0, byteIndex);
+                    byteIndex = 0;
 //                    try {
 //                        long l = Long.parseLong(temp);
 //                        int partition = partitionable.getPartition(longToBytes(l));
@@ -101,7 +103,8 @@ public class PartitionAnalyticDB implements AnalyticDB {
 //                        System.out.println(temp);
 //                    }
                 } else {
-                    deque.addLast(cur);
+                    bytes1[byteIndex++] = cur;
+//                    deque.addLast(cur);
                 }
             }
             byteBuffer.clear();
