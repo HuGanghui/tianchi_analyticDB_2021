@@ -95,15 +95,15 @@ public class PartitionAnalyticDB implements AnalyticDB {
 //                        } else {
 //                            index = 1;
 //                        }
-////                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
-////                        dataLog.write(l);
+//                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
+//                        dataLog.write(l);
 //                    } catch (NumberFormatException e) {
 //                        System.out.println(temp);
 //                    }
 //                } else {
 //                    deque.addLast(cur);
 //                }
-            }
+//            }
             byteBuffer.clear();
         }
         printTimeAndMemory("saveToDisk", "write into partitionDataLog",
