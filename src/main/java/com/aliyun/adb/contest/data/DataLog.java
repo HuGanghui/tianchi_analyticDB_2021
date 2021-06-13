@@ -67,6 +67,7 @@ public class DataLog {
         int fileSize = getFileLength();
         this.byteBuffer = null;
         if (this.fileChannel != null) {
+            this.fileChannel.force(false);
             this.fileChannel.close();
         }
         return fileSize;

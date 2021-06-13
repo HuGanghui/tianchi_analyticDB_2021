@@ -27,8 +27,8 @@ public class PartitionAnalyticDB implements AnalyticDB {
     private final int partitionNum = 1 << 8;
 
     // 每个文件可保存的最大行数
-    private final int TOTAL_LINE = (int) (3 * Math.pow(10, 8));
-//    private final int TOTAL_LINE = (int) (10000);
+//    private final int TOTAL_LINE = (int) (3 * Math.pow(10, 8));
+    private final int TOTAL_LINE = (int) (10000);
     /**
      *
      * The implementation must contain a public no-argument constructor.
