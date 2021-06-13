@@ -47,12 +47,12 @@ public class PartitionAnalyticDB implements AnalyticDB {
         File dir = new File(tpchDataFileDir);
 
         for (File dataFile : dir.listFiles()) {
-            saveToDisk2(workspaceDir, dataFile);
+            saveToDisk(workspaceDir, dataFile);
         }
         printTimeAndMemory("load", "load ended", startTime, System.currentTimeMillis());
     }
 
-    private void saveToDisk2(String workspaceDir, File dataFile) throws Exception {
+    private void saveToDisk(String workspaceDir, File dataFile) throws Exception {
         long startTime = System.currentTimeMillis();
 
         BufferedReader reader = new BufferedReader(new FileReader(dataFile), Constant.Buffer_CAP);
@@ -135,54 +135,6 @@ public class PartitionAnalyticDB implements AnalyticDB {
         return result;
     }
 
-    private void saveToDisk(String workspaceDir, File dataFile) throws Exception {
-        long startTime = System.currentTimeMillis();
-
-        BufferedReader reader = new BufferedReader(new FileReader(dataFile), Constant.Buffer_CAP);
-        String table = dataFile.getName();
-        String[] columns = reader.readLine().split(",");
-        final int columnLength = columns.length;
-        String[] tableColumns = new String[columnLength];
-        for (int i = 0; i < columnLength; i++) {
-            tableColumns[i] = tableColumnKey(table, columns[i]);
-            DataLog[] dataLogs = new DataLog[partitionNum];
-            int[] dataLogSizePrefixSum = new int[partitionNum];
-            dataLogMap.put(tableColumns[i], dataLogs);
-            for (int j = 0; j < partitionNum; j++) {
-                dataLogs[j] = new DataLog();
-                dataLogs[j].init(workspaceDir, tableColumns[i], j);
-            }
-            dataLogSizePrefixSumMap.put(tableColumns[i], dataLogSizePrefixSum);
-        }
-
-        long startWriteTime = System.currentTimeMillis();
-        String rawRow;
-        Long l;
-        while ((rawRow = reader.readLine()) != null) {
-            String[] row = rawRow.split(",");
-            for (int i = 0; i < columnLength; i++) {
-                l = new Long(row[i]);
-                int partition = partitionable.getPartition(long2bytes(l));
-                final DataLog dataLog = dataLogMap.get(tableColumns[i])[partition];
-                dataLog.write(l);
-            }
-        }
-        printTimeAndMemory("saveToDisk", "write into partitionDataLog",
-                startWriteTime, System.currentTimeMillis());
-
-        for (int i = 0; i < columnLength; i++) {
-            String key = tableColumns[i];
-            dataLogSizePrefixSumMap.get(key)[0] =
-                    dataLogMap.get(tableColumns[i])[0].destroy();
-            for (int j = 1; j < partitionNum; j++) {
-                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
-                        dataLogMap.get(tableColumns[i])[j].destroy();
-            }
-        }
-        reader.close();
-        printTimeAndMemory("saveToDisk", "saveToDisk ended", startTime, System.currentTimeMillis());
-    }
-
     @Override
     public String quantile(String table, String column, double percentile) throws Exception {
         long startTime = System.currentTimeMillis();
@@ -228,4 +180,63 @@ public class PartitionAnalyticDB implements AnalyticDB {
     private String tableColumnKey(String table, String column) {
         return (table + "_" + column).toLowerCase();
     }
+
+
+    /**
+     * Deprecated
+     *
+     * 传统的使用BufferReader来读取的方法
+     * 1. 速度比不上FileChannel
+     * 2. 无法方便的进一步优化从字符串到Long
+     * @param workspaceDir
+     * @param dataFile
+     * @throws Exception
+     */
+//    private void saveToDisk(String workspaceDir, File dataFile) throws Exception {
+//        long startTime = System.currentTimeMillis();
+//
+//        BufferedReader reader = new BufferedReader(new FileReader(dataFile), Constant.Buffer_CAP);
+//        String table = dataFile.getName();
+//        String[] columns = reader.readLine().split(",");
+//        final int columnLength = columns.length;
+//        String[] tableColumns = new String[columnLength];
+//        for (int i = 0; i < columnLength; i++) {
+//            tableColumns[i] = tableColumnKey(table, columns[i]);
+//            DataLog[] dataLogs = new DataLog[partitionNum];
+//            int[] dataLogSizePrefixSum = new int[partitionNum];
+//            dataLogMap.put(tableColumns[i], dataLogs);
+//            for (int j = 0; j < partitionNum; j++) {
+//                dataLogs[j] = new DataLog();
+//                dataLogs[j].init(workspaceDir, tableColumns[i], j);
+//            }
+//            dataLogSizePrefixSumMap.put(tableColumns[i], dataLogSizePrefixSum);
+//        }
+//
+//        long startWriteTime = System.currentTimeMillis();
+//        String rawRow;
+//        Long l;
+//        while ((rawRow = reader.readLine()) != null) {
+//            String[] row = rawRow.split(",");
+//            for (int i = 0; i < columnLength; i++) {
+//                l = new Long(row[i]);
+//                int partition = partitionable.getPartition(long2bytes(l));
+//                final DataLog dataLog = dataLogMap.get(tableColumns[i])[partition];
+//                dataLog.write(l);
+//            }
+//        }
+//        printTimeAndMemory("saveToDisk", "write into partitionDataLog",
+//                startWriteTime, System.currentTimeMillis());
+//
+//        for (int i = 0; i < columnLength; i++) {
+//            String key = tableColumns[i];
+//            dataLogSizePrefixSumMap.get(key)[0] =
+//                    dataLogMap.get(tableColumns[i])[0].destroy();
+//            for (int j = 1; j < partitionNum; j++) {
+//                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
+//                        dataLogMap.get(tableColumns[i])[j].destroy();
+//            }
+//        }
+//        reader.close();
+//        printTimeAndMemory("saveToDisk", "saveToDisk ended", startTime, System.currentTimeMillis());
+//    }
 }
