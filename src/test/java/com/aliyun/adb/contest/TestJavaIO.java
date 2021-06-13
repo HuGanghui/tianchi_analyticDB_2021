@@ -6,6 +6,8 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Deque;
+import java.util.LinkedList;
 
 /**
  * 这个类主要用来对Java中不同对IO方式进行测试，以此了解不同IO的性能情况
@@ -269,5 +271,54 @@ public class TestJavaIO {
         long endTime = System.currentTimeMillis();
         double spendTime = (endTime - startTime) / 1000.0;
         System.out.println("Total Time: " + spendTime + " sec");
+    }
+
+    @Test
+    public void testIO() throws Exception {
+//        File source = new File("./tmp/BuffWriteTest.txt");
+        File source = new File("./tmp/ATest.txt");
+        test(source, 4096);
+    }
+
+
+    private void test(File source, int byteSize) throws Exception {
+//        String strings = "5,6\n";
+//        byte[] bytes = strings.getBytes();
+//        System.out.println();
+
+        long startTime = System.currentTimeMillis();
+
+//        FileInputStream ins = new FileInputStream(source);
+//        FileChannel fcin = ins.getChannel();
+        FileChannel fcin = new RandomAccessFile(source, "r").getChannel();
+
+        ByteBuffer bbuff = ByteBuffer.allocate(byteSize);
+        Deque<Byte> deque = new LinkedList<>();
+        while (fcin.read(bbuff) != -1) {
+            bbuff.flip();
+            byte[] bytes = bbuff.array();
+            for (int i = 0; i < bytes.length; i++) {
+                if (bytes[i] == 10 || bytes[i] == 44) {
+                    byte[] bytes1 = new byte[deque.size()];
+                    for (int j = 0; j < bytes1.length; j++) {
+                        bytes1[j] = deque.removeFirst();
+                    }
+                    String temp = new String(bytes1);
+                    try {
+                        System.out.println(Long.parseLong(temp));
+                    } catch (NumberFormatException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    deque.addLast(bytes[i]);
+                }
+            }
+            bbuff.clear();
+        }
+        fcin.close();
+
+        long endTime = System.currentTimeMillis();
+        double spendTime = (endTime - startTime) / 1000.0;
+        System.out.println("byteSize: " + byteSize + " Total Time: " + spendTime + " sec");
     }
 }

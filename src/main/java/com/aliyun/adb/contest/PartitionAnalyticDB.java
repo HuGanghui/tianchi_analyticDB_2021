@@ -1,7 +1,6 @@
 package com.aliyun.adb.contest;
 
 import com.aliyun.adb.contest.common.Constant;
-import com.aliyun.adb.contest.common.Utils;
 import com.aliyun.adb.contest.data.DataLog;
 import com.aliyun.adb.contest.partition.HighTenPartitioner;
 import com.aliyun.adb.contest.partition.Partitionable;
@@ -9,7 +8,6 @@ import com.aliyun.adb.contest.spi.AnalyticDB;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.*;
 
@@ -46,58 +44,82 @@ public class PartitionAnalyticDB implements AnalyticDB {
         File dir = new File(tpchDataFileDir);
 
         for (File dataFile : dir.listFiles()) {
-            saveToDisk3(workspaceDir, dataFile);
+            saveToDisk2(workspaceDir, dataFile);
         }
         printTimeAndMemory("load", "load ended", startTime, System.currentTimeMillis());
     }
 
     private void saveToDisk2(String workspaceDir, File dataFile) throws Exception {
+        long startTime = System.currentTimeMillis();
+
+        BufferedReader reader = new BufferedReader(new FileReader(dataFile), Constant.Buffer_CAP);
+        String[] columns = reader.readLine().split(",");
+        reader.close();
+        final int columnLength = columns.length;
+        String[] tableColumns = new String[columnLength];
+        String table = dataFile.getName();
+        for (int i = 0; i < columnLength; i++) {
+            tableColumns[i] = tableColumnKey(table, columns[i]);
+            DataLog[] dataLogs = new DataLog[partitionNum];
+            int[] dataLogSizePrefixSum = new int[partitionNum];
+            dataLogMap.put(tableColumns[i], dataLogs);
+            for (int j = 0; j < partitionNum; j++) {
+                dataLogs[j] = new DataLog();
+                dataLogs[j].init(workspaceDir, tableColumns[i], j);
+            }
+            dataLogSizePrefixSumMap.put(tableColumns[i], dataLogSizePrefixSum);
+        }
+
         FileChannel readFileChannel = new FileInputStream(dataFile).getChannel();
         ByteBuffer byteBuffer = ByteBuffer.allocate(Constant.Buffer_CAP);
+        Deque<Byte> deque = new LinkedList<>();
+
+        long startWriteTime = System.currentTimeMillis();
+
         while (readFileChannel.read(byteBuffer) != -1) {
             byteBuffer.flip();
-            String temp = new String(byteBuffer.array());
-            temp.split(",");
+            while (byteBuffer.hasRemaining()){
+                byte cur = byteBuffer.get();
+                if (cur == 10 || cur == 44) {
+                    byte[] bytes1 = new byte[deque.size()];
+                    for (int j = 0; j < bytes1.length; j++) {
+                        bytes1[j] = deque.removeFirst();
+                    }
+                    String temp = new String(bytes1);
+                    try {
+                        long l = Long.parseLong(temp);
+                        int partition = partitionable.getPartition(longToBytes(l));
+                        int index;
+                        if (cur == 44) {
+                            index = 0;
+                        } else {
+                            index = 1;
+                        }
+                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
+                        dataLog.write(l);
+                    } catch (NumberFormatException e) {
+                        System.out.println(temp);
+                    }
+                } else {
+                    deque.addLast(cur);
+                }
+            }
             byteBuffer.clear();
         }
-        readFileChannel.close();
-    }
+        printTimeAndMemory("saveToDisk", "write into partitionDataLog",
+                startWriteTime, System.currentTimeMillis());
 
-    private void saveToDisk3(String workspaceDir, File dataFile) throws Exception {
-        FileChannel readFileChannel = new FileInputStream(dataFile).getChannel();
-        ByteBuffer byteBuffer = ByteBuffer.allocate(Constant.Buffer_CAP);
-
-        FileChannel fileChannel = new RandomAccessFile(dataFile, "rw").getChannel();
-        long fileSize = fileChannel.size();
-        int bufferCount = (int) Math.ceil((double) fileSize / (double) Integer.MAX_VALUE);
-        MappedByteBuffer[] mappedByteBuffers = new MappedByteBuffer[bufferCount];
-        long preLength = 0;
-        long regionSize = Integer.MAX_VALUE;
-        for (int i = 0; i < bufferCount; i++) {
-            if (fileSize - preLength < Integer.MAX_VALUE) {
-                regionSize = fileSize - preLength;
+        for (int i = 0; i < columnLength; i++) {
+            String key = tableColumns[i];
+            dataLogSizePrefixSumMap.get(key)[0] =
+                    dataLogMap.get(tableColumns[i])[0].destroy();
+            for (int j = 1; j < partitionNum; j++) {
+                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
+                        dataLogMap.get(tableColumns[i])[j].destroy();
             }
-            mappedByteBuffers[i] = fileChannel.map(FileChannel.MapMode.READ_ONLY, preLength, regionSize);
-            preLength += regionSize;
-        }
-        int byteBufferSize = 4096;
-        int bufferCountIndex = 0;
-        byte[] bbuf = new byte[byteBufferSize];
-        while (bufferCountIndex < bufferCount) {
-            MappedByteBuffer mappedByteBuffer = mappedByteBuffers[bufferCountIndex];
-            while (mappedByteBuffer.limit()
-                    - mappedByteBuffer.position() > byteBufferSize) {
-                mappedByteBuffer.get(bbuf);
-                String s = new String(bbuf);
-//            System.out.println(s);
-            }
-            bbuf = new byte[mappedByteBuffer.limit()
-                    - mappedByteBuffer.position()];
-            mappedByteBuffer.get(bbuf);
-            String s = new String(bbuf);
-            bufferCountIndex++;
         }
         readFileChannel.close();
+        printTimeAndMemory("saveToDisk", "saveToDisk ended", startTime, System.currentTimeMillis());
     }
 
     private void saveToDisk(String workspaceDir, File dataFile) throws Exception {
