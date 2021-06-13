@@ -47,7 +47,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
         File dir = new File(tpchDataFileDir);
 
         for (File dataFile : dir.listFiles()) {
-            saveToDisk(workspaceDir, dataFile);
+            saveToDisk2(workspaceDir, dataFile);
         }
         printTimeAndMemory("load", "load ended", startTime, System.currentTimeMillis());
     }
@@ -91,7 +91,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
                     String temp = new String(bytes1, 0, byteIndex, StandardCharsets.US_ASCII);
                     byteIndex = 0;
                     try {
-                        l = Long.parseLong(temp);
+                        l = new Long(temp);
                         partition = partitionable.getPartition(long2bytes(l));
                         index = (cur == 44 ? 0 : 1);
                         final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
@@ -105,7 +105,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
             }
             byteBuffer.clear();
         }
-        printTimeAndMemory("saveToDisk", "write into partitionDataLog",
+        printTimeAndMemory("saveToDisk2", "write into partitionDataLog",
                 startWriteTime, System.currentTimeMillis());
 
         for (int i = 0; i < columnLength; i++) {
@@ -118,7 +118,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
             }
         }
         readFileChannel.close();
-        printTimeAndMemory("saveToDisk", "saveToDisk ended", startTime, System.currentTimeMillis());
+        printTimeAndMemory("saveToDisk2", "saveToDisk ended", startTime, System.currentTimeMillis());
     }
 
     private void saveToDisk(String workspaceDir, File dataFile) throws Exception {
