@@ -85,7 +85,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
                     for (int j = 0; j < bytes1.length; j++) {
                         bytes1[j] = deque.removeFirst();
                     }
-                    String temp = new String(bytes1);
+//                    String temp = new String(bytes1);
 //                    try {
 //                        long l = Long.parseLong(temp);
 //                        int partition = partitionable.getPartition(longToBytes(l));
