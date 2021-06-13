@@ -13,6 +13,7 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+import static com.aliyun.adb.contest.common.Utils.long2bytes;
 import static com.aliyun.adb.contest.common.Utils.longToBytes;
 import static com.aliyun.adb.contest.common.Utils.printTimeAndMemory;
 

@@ -13,7 +13,8 @@ public class Utils {
         return buffer.array();
     }
 
-    private static byte[] long2bytes(long values) {
+    // 输出long的第一个byte
+    public static byte[] long2bytes(long values) {
         int offset = 64 - 8;
         byte byteOne = (byte) ((values >> offset) & 0xff);
         return new byte[]{byteOne};
