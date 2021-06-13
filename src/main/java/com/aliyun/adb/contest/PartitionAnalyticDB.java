@@ -78,14 +78,14 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
         while (readFileChannel.read(byteBuffer) != -1) {
             byteBuffer.flip();
-//            while (byteBuffer.hasRemaining()){
-//                byte cur = byteBuffer.get();
-//                if (cur == 10 || cur == 44) {
-//                    byte[] bytes1 = new byte[deque.size()];
-//                    for (int j = 0; j < bytes1.length; j++) {
-//                        bytes1[j] = deque.removeFirst();
-//                    }
-//                    String temp = new String(bytes1);
+            while (byteBuffer.hasRemaining()){
+                byte cur = byteBuffer.get();
+                if (cur == 10 || cur == 44) {
+                    byte[] bytes1 = new byte[deque.size()];
+                    for (int j = 0; j < bytes1.length; j++) {
+                        bytes1[j] = deque.removeFirst();
+                    }
+                    String temp = new String(bytes1);
 //                    try {
 //                        long l = Long.parseLong(temp);
 //                        int partition = partitionable.getPartition(longToBytes(l));
@@ -100,10 +100,10 @@ public class PartitionAnalyticDB implements AnalyticDB {
 //                    } catch (NumberFormatException e) {
 //                        System.out.println(temp);
 //                    }
-//                } else {
-//                    deque.addLast(cur);
-//                }
-//            }
+                } else {
+                    deque.addLast(cur);
+                }
+            }
             byteBuffer.clear();
         }
         printTimeAndMemory("saveToDisk", "write into partitionDataLog",
