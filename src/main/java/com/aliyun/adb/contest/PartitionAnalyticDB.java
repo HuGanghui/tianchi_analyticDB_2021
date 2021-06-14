@@ -102,11 +102,11 @@ public class PartitionAnalyticDB implements AnalyticDB {
                     try {
                         l = convertToLong(bufferBytes, byteStartIndex, i);
                         byteStartIndex = i+1;
-                        byte partition = (byte) ((l >> 56) & 0xff);
+//                        byte partition = (byte) ((l >> 56) & 0xff);
 //                        partition = partitionable.getPartition(long2bytes(l));
-                        index = (cur == ff ? 0 : 1);
-                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
-                        dataLog.write(l);
+//                        index = (cur == ff ? 0 : 1);
+//                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
+//                        dataLog.write(l);
                     } catch (NumberFormatException e) {
                         String temp = new String(bufferBytes, byteStartIndex, i-byteStartIndex, StandardCharsets.US_ASCII);
                         byteStartIndex = i+1;
@@ -116,7 +116,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
             }
             byteBuffer.clear();
         }
-        printTimeAndMemory("saveToDisk2", "write to partition",
+        printTimeAndMemory("saveToDisk2", "no write + no dataLog + no index + no partition",
                 startWriteTime, System.currentTimeMillis());
 
         for (int i = 0; i < columnLength; i++) {
