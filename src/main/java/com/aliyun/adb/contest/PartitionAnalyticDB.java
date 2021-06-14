@@ -78,6 +78,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
         long startWriteTime = System.currentTimeMillis();
         int index;
+        byte partition;
         long l;
         byte cur;
         final byte ten = 10;
@@ -101,7 +102,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
                     try {
                         l = convertToLong(bufferBytes, byteStartIndex, i);
                         byteStartIndex = i+1;
-                        byte partition = (byte) ((l >> 56) & 0xff);
+                        partition = (byte) ((l >> 56) & 0xff);
 //                        partition = partitionable.getPartition(long2bytes(l));
                         index = (cur == ff ? 0 : 1);
                         final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
