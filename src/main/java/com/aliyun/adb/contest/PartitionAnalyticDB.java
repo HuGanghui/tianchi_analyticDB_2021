@@ -72,39 +72,51 @@ public class PartitionAnalyticDB implements AnalyticDB {
             }
             dataLogSizePrefixSumMap.put(tableColumns[i], dataLogSizePrefixSum);
         }
-
-        FileChannel readFileChannel = new FileInputStream(dataFile).getChannel();
+        RandomAccessFile raf = new RandomAccessFile(dataFile, "r");
+        FileChannel readFileChannel = raf.getChannel();
         ByteBuffer byteBuffer = ByteBuffer.allocate(Constant.Buffer_CAP);
 
         long startWriteTime = System.currentTimeMillis();
 
-        byte[] bytes1 = new byte[4096];
-        int byteIndex = 0;
+//        byte[] bytes1 = new byte[4096];
         int index;
         long l;
         int partition;
+        final byte ten = 10;
+        final byte ff = 44;
         while (readFileChannel.read(byteBuffer) != -1) {
             byteBuffer.flip();
             byte[] bufferBytes = byteBuffer.array();
             int n = byteBuffer.limit();
+//            System.out.println("limit: " + n);
+            int back = 0;
+//            System.out.println("last byte: " + bufferBytes[n-1]);
+            if (bufferBytes[n-1] != ten) {
+                while (bufferBytes[n-1] != ten) {
+                    n--;
+                    back++;
+                }
+//                System.out.println("before: " + raf.getFilePointer());
+                raf.seek(raf.getFilePointer() - back);
+//                System.out.println("after: " + raf.getFilePointer());
+            }
+            int byteStartIndex = 0;
             for (int i = 0; i < n; i++) {
                 byte cur = bufferBytes[i];
-                if (cur == 10 || cur == 44) {
+                if (cur == ten || cur == ff) {
                     try {
-                        l = convertToLong(bytes1, 0, byteIndex);
-                        byteIndex = 0;
+                        l = convertToLong(bufferBytes, byteStartIndex, i);
+//                        System.out.println(l);
+                        byteStartIndex = i+1;
                         partition = partitionable.getPartition(long2bytes(l));
                         index = (cur == 44 ? 0 : 1);
                         final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
                         dataLog.write(l);
                     } catch (NumberFormatException e) {
-                        String temp = new String(bytes1, 0, byteIndex, StandardCharsets.US_ASCII);
-                        byteIndex = 0;
+                        String temp = new String(bufferBytes, byteStartIndex, i-byteStartIndex, StandardCharsets.US_ASCII);
+                        byteStartIndex = i+1;
                         System.out.println(temp);
                     }
-                } else {
-                    bytes1[byteIndex] = cur;
-                    byteIndex++;
                 }
             }
             byteBuffer.clear();
@@ -127,7 +139,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
     private long convertToLong(byte[] bytes, int startIndex, int endIndex) {
         // ASCII convert to long
-        if (bytes[0] < 48 || bytes[0] > 57) {
+        if (bytes[startIndex] < 48 || bytes[startIndex] > 57) {
             throw new NumberFormatException();
         }
         long result = 0;

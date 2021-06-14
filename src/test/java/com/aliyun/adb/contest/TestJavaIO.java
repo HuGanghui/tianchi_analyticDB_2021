@@ -145,7 +145,7 @@ public class TestJavaIO {
                     byteIndex = 0;
                 } else {
                     bytes1[byteIndex] = cur;
-                    byteIndex++;
+//                    byteIndex++;
                 }
             }
             // Total Time: 32.262 sec 读入11G大小的数据
