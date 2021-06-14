@@ -130,6 +130,10 @@ public class TestJavaIO {
 
         ByteBuffer bbuff = ByteBuffer.allocate(byteSize);
 
+        byte[] bytes1 = new byte[4096];
+        int byteIndex = 0;
+        final byte ten = 10;
+        final byte ff = 44;
         while (fcin.read(bbuff) != -1) {
             bbuff.flip();
             // Total Time: 10.526 sec 读入11G大小的数据
@@ -137,6 +141,12 @@ public class TestJavaIO {
             int n = bbuff.limit();
             for (int i = 0; i < n; i++) {
                 byte cur = bytes[i];
+                if (cur == ten || cur == ff) {
+                    byteIndex = 0;
+                } else {
+                    bytes1[byteIndex] = cur;
+                    byteIndex++;
+                }
             }
             // Total Time: 32.262 sec 读入11G大小的数据
 //            while (bbuff.hasRemaining()){
