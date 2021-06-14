@@ -78,11 +78,8 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
         long startWriteTime = System.currentTimeMillis();
 
-        int index;
-        long l;
         final byte ten = 10;
         final byte ff = 44;
-        raf.seek(21);
         while (readFileChannel.read(byteBuffer) != -1) {
             byteBuffer.flip();
             byte[] bufferBytes = byteBuffer.array();
@@ -100,11 +97,11 @@ public class PartitionAnalyticDB implements AnalyticDB {
                 byte cur = bufferBytes[i];
                 if (cur == ten || cur == ff) {
                     try {
-                        l = convertToLong(bufferBytes, byteStartIndex, i);
+                        long l = convertToLong(bufferBytes, byteStartIndex, i);
                         byteStartIndex = i+1;
                         byte partition = (byte) ((l >> 56) & 0xff);
 //                        partition = partitionable.getPartition(long2bytes(l));
-                        index = (cur == ff ? 0 : 1);
+                        int index = (cur == ff ? 0 : 1);
                         final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
                         dataLog.write(l);
                     } catch (NumberFormatException e) {
