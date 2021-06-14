@@ -80,9 +80,10 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
         int index;
         long l;
-        int partition;
+        byte partition;
         final byte ten = 10;
         final byte ff = 44;
+        final int offset = 64 - 8;
         while (readFileChannel.read(byteBuffer) != -1) {
             byteBuffer.flip();
             byte[] bufferBytes = byteBuffer.array();
@@ -102,7 +103,6 @@ public class PartitionAnalyticDB implements AnalyticDB {
                     try {
                         l = convertToLong(bufferBytes, byteStartIndex, i);
                         byteStartIndex = i+1;
-                        int offset = 64 - 8;
                         partition = (byte) ((l >> offset) & 0xff);
                         index = (cur == ff ? 0 : 1);
                         final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
