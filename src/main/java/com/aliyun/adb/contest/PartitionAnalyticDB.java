@@ -103,7 +103,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
                         l = convertToLong(bufferBytes, byteStartIndex, i);
                         byteStartIndex = i+1;
                         partition = partitionable.getPartition(long2bytes(l));
-                        index = (cur == ff ? 0 : 1);
+//                        index = (cur == ff ? 0 : 1);
 //                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
 //                        dataLog.write(l);
                     } catch (NumberFormatException e) {
