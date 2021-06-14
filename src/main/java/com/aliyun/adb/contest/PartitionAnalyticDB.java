@@ -106,7 +106,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
                         partition = (byte) ((l >> offset) & 0xff);
                         index = (cur == ff ? 0 : 1);
                         final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
-//                        dataLog.write(l);
+                        dataLog.write(l);
                     } catch (NumberFormatException e) {
                         String temp = new String(bufferBytes, byteStartIndex, i-byteStartIndex, StandardCharsets.US_ASCII);
                         byteStartIndex = i+1;
@@ -119,15 +119,15 @@ public class PartitionAnalyticDB implements AnalyticDB {
         printTimeAndMemory("saveToDisk2", "write into partitionDataLog",
                 startWriteTime, System.currentTimeMillis());
 
-//        for (int i = 0; i < columnLength; i++) {
-//            String key = tableColumns[i];
-//            dataLogSizePrefixSumMap.get(key)[0] =
-//                    dataLogMap.get(tableColumns[i])[0].destroy();
-//            for (int j = 1; j < partitionNum; j++) {
-//                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
-//                        dataLogMap.get(tableColumns[i])[j].destroy();
-//            }
-//        }
+        for (int i = 0; i < columnLength; i++) {
+            String key = tableColumns[i];
+            dataLogSizePrefixSumMap.get(key)[0] =
+                    dataLogMap.get(tableColumns[i])[0].destroy();
+            for (int j = 1; j < partitionNum; j++) {
+                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
+                        dataLogMap.get(tableColumns[i])[j].destroy();
+            }
+        }
         readFileChannel.close();
         printTimeAndMemory("saveToDisk2", "saveToDisk ended", startTime, System.currentTimeMillis());
     }
