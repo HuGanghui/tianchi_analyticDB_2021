@@ -132,6 +132,16 @@ public class TestJavaIO {
 
         while (fcin.read(bbuff) != -1) {
             bbuff.flip();
+            // Total Time: 10.526 sec 读入11G大小的数据
+//            byte[] bytes = bbuff.array();
+//            int n = bytes.length;
+//            for (int i = 0; i < n; i++) {
+//                byte cur = bytes[i];
+//            }
+            // Total Time: 38.877 sec 读入11G大小的数据
+            while (bbuff.hasRemaining()){
+                byte cur = bbuff.get();
+            }
             new String(bbuff.array());
             bbuff.clear();
         }
