@@ -102,9 +102,9 @@ public class PartitionAnalyticDB implements AnalyticDB {
                     try {
                         l = convertToLong(bufferBytes, byteStartIndex, i);
                         byteStartIndex = i+1;
-                        partition = partitionable.getPartition(long2bytes(l));
-                        index = (cur == 44 ? 0 : 1);
-                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
+//                        partition = partitionable.getPartition(long2bytes(l));
+//                        index = (cur == 44 ? 0 : 1);
+//                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
 //                        dataLog.write(l);
                     } catch (NumberFormatException e) {
                         String temp = new String(bufferBytes, byteStartIndex, i-byteStartIndex, StandardCharsets.US_ASCII);
