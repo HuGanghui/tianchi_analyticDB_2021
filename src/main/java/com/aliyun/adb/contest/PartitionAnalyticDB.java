@@ -80,6 +80,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
         int index;
         long l;
+        byte cur;
         final byte ten = 10;
         final byte ff = 44;
         while (readFileChannel.read(byteBuffer) != -1) {
@@ -96,7 +97,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
             }
             int byteStartIndex = 0;
             for (int i = 0; i < n; i++) {
-                byte cur = bufferBytes[i];
+                cur = bufferBytes[i];
                 if (cur == ten || cur == ff) {
                     try {
                         l = convertToLong(bufferBytes, byteStartIndex, i);
