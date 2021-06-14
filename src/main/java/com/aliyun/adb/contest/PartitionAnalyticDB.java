@@ -108,9 +108,9 @@ public class PartitionAnalyticDB implements AnalyticDB {
 //                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
 //                        dataLog.write(l);
                     } catch (NumberFormatException e) {
-                        String temp = new String(bufferBytes, byteStartIndex, i-byteStartIndex, StandardCharsets.US_ASCII);
+//                        String temp = new String(bufferBytes, byteStartIndex, i-byteStartIndex, StandardCharsets.US_ASCII);
                         byteStartIndex = i+1;
-                        System.out.println(temp);
+//                        System.out.println(temp);
                     }
                 }
             }
