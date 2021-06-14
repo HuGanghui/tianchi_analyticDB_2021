@@ -85,39 +85,40 @@ public class PartitionAnalyticDB implements AnalyticDB {
         int partition;
         while (readFileChannel.read(byteBuffer) != -1) {
             byteBuffer.flip();
-//            while (byteBuffer.hasRemaining()){
-//                byte cur = byteBuffer.get();
-//                if (cur == 10 || cur == 44) {
-//                    try {
-//                        l = convertToLong(bytes1, 0, byteIndex);
-//                        byteIndex = 0;
-//                        partition = partitionable.getPartition(long2bytes(l));
-//                        index = (cur == 44 ? 0 : 1);
-//                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
-//                        dataLog.write(l);
-//                    } catch (NumberFormatException e) {
-//                        String temp = new String(bytes1, 0, byteIndex, StandardCharsets.US_ASCII);
-//                        byteIndex = 0;
-//                        System.out.println(temp);
-//                    }
-//                } else {
-//                    bytes1[byteIndex++] = cur;
-//                }
-//            }
+            byte[] bufferBytes = byteBuffer.array();
+            int n = byteBuffer.limit();
+            for (int i = 0; i < n; i++) {
+                if (bufferBytes[i] == 10 || bufferBytes[i] == 44) {
+                    try {
+                        l = convertToLong(bytes1, 0, byteIndex);
+                        byteIndex = 0;
+                        partition = partitionable.getPartition(long2bytes(l));
+                        index = (bufferBytes[i] == 44 ? 0 : 1);
+                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
+                        dataLog.write(l);
+                    } catch (NumberFormatException e) {
+                        String temp = new String(bytes1, 0, byteIndex, StandardCharsets.US_ASCII);
+                        byteIndex = 0;
+                        System.out.println(temp);
+                    }
+                } else {
+                    bytes1[byteIndex++] = bufferBytes[i];
+                }
+            }
             byteBuffer.clear();
         }
         printTimeAndMemory("saveToDisk2", "write into partitionDataLog",
                 startWriteTime, System.currentTimeMillis());
 
-//        for (int i = 0; i < columnLength; i++) {
-//            String key = tableColumns[i];
-//            dataLogSizePrefixSumMap.get(key)[0] =
-//                    dataLogMap.get(tableColumns[i])[0].destroy();
-//            for (int j = 1; j < partitionNum; j++) {
-//                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
-//                        dataLogMap.get(tableColumns[i])[j].destroy();
-//            }
-//        }
+        for (int i = 0; i < columnLength; i++) {
+            String key = tableColumns[i];
+            dataLogSizePrefixSumMap.get(key)[0] =
+                    dataLogMap.get(tableColumns[i])[0].destroy();
+            for (int j = 1; j < partitionNum; j++) {
+                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
+                        dataLogMap.get(tableColumns[i])[j].destroy();
+            }
+        }
         readFileChannel.close();
         printTimeAndMemory("saveToDisk2", "saveToDisk ended", startTime, System.currentTimeMillis());
     }
