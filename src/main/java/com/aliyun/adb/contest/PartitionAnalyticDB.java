@@ -90,16 +90,18 @@ public class PartitionAnalyticDB implements AnalyticDB {
             for (int i = 0; i < n; i++) {
                 byte cur = bufferBytes[i];
                 if (cur == 10 || cur == 44) {
-                    if (bytes1[0] < 48 || bytes1[0] > 57) {
+//                    try {
+//                        l = convertToLong(bytes1, 0, byteIndex);
                         byteIndex = 0;
-                        continue;
-                    }
-                    l = convertToLong(bytes1, 0, byteIndex);
-                    byteIndex = 0;
-                    partition = partitionable.getPartition(long2bytes(l));
-                    index = (cur == 44 ? 0 : 1);
-                    final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
-                    dataLog.write(l);
+//                        partition = partitionable.getPartition(long2bytes(l));
+//                        index = (cur == 44 ? 0 : 1);
+//                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
+//                        dataLog.write(l);
+//                    } catch (NumberFormatException e) {
+//                        String temp = new String(bytes1, 0, byteIndex, StandardCharsets.US_ASCII);
+//                        byteIndex = 0;
+//                        System.out.println(temp);
+//                    }
                 } else {
                     bytes1[byteIndex++] = cur;
                 }
@@ -109,21 +111,24 @@ public class PartitionAnalyticDB implements AnalyticDB {
         printTimeAndMemory("saveToDisk2", "write into partitionDataLog",
                 startWriteTime, System.currentTimeMillis());
 
-//        for (int i = 0; i < columnLength; i++) {
-//            String key = tableColumns[i];
-//            dataLogSizePrefixSumMap.get(key)[0] =
-//                    dataLogMap.get(tableColumns[i])[0].destroy();
-//            for (int j = 1; j < partitionNum; j++) {
-//                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
-//                        dataLogMap.get(tableColumns[i])[j].destroy();
-//            }
-//        }
+        for (int i = 0; i < columnLength; i++) {
+            String key = tableColumns[i];
+            dataLogSizePrefixSumMap.get(key)[0] =
+                    dataLogMap.get(tableColumns[i])[0].destroy();
+            for (int j = 1; j < partitionNum; j++) {
+                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
+                        dataLogMap.get(tableColumns[i])[j].destroy();
+            }
+        }
         readFileChannel.close();
         printTimeAndMemory("saveToDisk2", "saveToDisk ended", startTime, System.currentTimeMillis());
     }
 
     private long convertToLong(byte[] bytes, int startIndex, int endIndex) {
         // ASCII convert to long
+        if (bytes[0] < 48 || bytes[0] > 57) {
+            throw new NumberFormatException();
+        }
         long result = 0;
         for (int i = startIndex; i < endIndex; i++) {
             result = result * 10 + (bytes[i] - 48);
