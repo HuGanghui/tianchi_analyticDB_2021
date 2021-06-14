@@ -102,7 +102,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
                     try {
                         l = convertToLong(bufferBytes, byteStartIndex, i);
                         byteStartIndex = i+1;
-                        partition = partitionable.getPartition(long2bytes(l));
+//                        partition = partitionable.getPartition(long2bytes(l));
 //                        index = (cur == ff ? 0 : 1);
 //                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
 //                        dataLog.write(l);
@@ -115,7 +115,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
             }
             byteBuffer.clear();
         }
-        printTimeAndMemory("saveToDisk2", "no write + no dataLog + no index",
+        printTimeAndMemory("saveToDisk2", "no write + no dataLog + no index + no partition",
                 startWriteTime, System.currentTimeMillis());
 
 //        for (int i = 0; i < columnLength; i++) {
