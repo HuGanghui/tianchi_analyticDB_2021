@@ -80,7 +80,6 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
         int index;
         long l;
-        int partition;
         final byte ten = 10;
         final byte ff = 44;
         raf.seek(21);
@@ -103,7 +102,8 @@ public class PartitionAnalyticDB implements AnalyticDB {
                     try {
                         l = convertToLong(bufferBytes, byteStartIndex, i);
                         byteStartIndex = i+1;
-                        partition = partitionable.getPartition(long2bytes(l));
+                        byte partition = (byte) ((l >> 56) & 0xff);
+//                        partition = partitionable.getPartition(long2bytes(l));
 //                        index = (cur == ff ? 0 : 1);
 //                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
 //                        dataLog.write(l);
@@ -116,7 +116,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
             }
             byteBuffer.clear();
         }
-        printTimeAndMemory("saveToDisk2", "no write + no dataLog + no index + change convertToLong",
+        printTimeAndMemory("saveToDisk2", "no write + no dataLog + no index + change partition",
                 startWriteTime, System.currentTimeMillis());
 
 //        for (int i = 0; i < columnLength; i++) {
@@ -134,9 +134,9 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
     private long convertToLong(byte[] bytes, int startIndex, int endIndex) {
         // ASCII convert to long
-//        if (bytes[startIndex] < 48 || bytes[startIndex] > 57) {
-//            throw new NumberFormatException();
-//        }
+        if (bytes[startIndex] < 48 || bytes[startIndex] > 57) {
+            throw new NumberFormatException();
+        }
         long result = 0;
         for (int i = startIndex; i < endIndex; i++) {
             result = result * 10 + (bytes[i] - 48);
