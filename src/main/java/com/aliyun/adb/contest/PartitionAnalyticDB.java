@@ -89,22 +89,20 @@ public class PartitionAnalyticDB implements AnalyticDB {
             int n = byteBuffer.limit();
             for (int i = 0; i < n; i++) {
                 byte cur = bufferBytes[i];
-//                if (cur == 10 || cur == 44) {
-//                    try {
-//                        l = convertToLong(bytes1, 0, byteIndex);
-//                        byteIndex = 0;
-//                        partition = partitionable.getPartition(long2bytes(l));
-//                        index = (cur == 44 ? 0 : 1);
-//                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
-//                        dataLog.write(l);
-//                    } catch (NumberFormatException e) {
-//                        String temp = new String(bytes1, 0, byteIndex, StandardCharsets.US_ASCII);
-//                        byteIndex = 0;
-//                        System.out.println(temp);
-//                    }
-//                } else {
-//                    bytes1[byteIndex++] = cur;
-//                }
+                if (cur == 10 || cur == 44) {
+                    if (bytes1[0] < 48 || bytes1[0] > 57) {
+                        byteIndex = 0;
+                        continue;
+                    }
+                    l = convertToLong(bytes1, 0, byteIndex);
+                    byteIndex = 0;
+                    partition = partitionable.getPartition(long2bytes(l));
+                    index = (cur == 44 ? 0 : 1);
+                    final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
+                    dataLog.write(l);
+                } else {
+                    bytes1[byteIndex++] = cur;
+                }
             }
             byteBuffer.clear();
         }
@@ -126,10 +124,6 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
     private long convertToLong(byte[] bytes, int startIndex, int endIndex) {
         // ASCII convert to long
-        if (bytes[0] < 48 || bytes[0] > 57) {
-            throw new NumberFormatException();
-        }
-        int n = bytes.length;
         long result = 0;
         for (int i = startIndex; i < endIndex; i++) {
             result = result * 10 + (bytes[i] - 48);
