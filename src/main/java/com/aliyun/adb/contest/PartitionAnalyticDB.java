@@ -83,6 +83,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
         int partition;
         final byte ten = 10;
         final byte ff = 44;
+        final byte[] keyToPartitoin = new byte[1];
         while (readFileChannel.read(byteBuffer) != -1) {
             byteBuffer.flip();
             byte[] bufferBytes = byteBuffer.array();
@@ -102,9 +103,11 @@ public class PartitionAnalyticDB implements AnalyticDB {
                     try {
                         l = convertToLong(bufferBytes, byteStartIndex, i);
                         byteStartIndex = i+1;
-                        partition = partitionable.getPartition(long2bytes(l));
-//                        index = (cur == ff ? 0 : 1);
-//                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
+                        int offset = 64 - 8;
+                        keyToPartitoin[0] = (byte) ((l >> offset) & 0xff);
+                        partition = partitionable.getPartition(keyToPartitoin);
+                        index = (cur == ff ? 0 : 1);
+                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
 //                        dataLog.write(l);
                     } catch (NumberFormatException e) {
                         String temp = new String(bufferBytes, byteStartIndex, i-byteStartIndex, StandardCharsets.US_ASCII);
