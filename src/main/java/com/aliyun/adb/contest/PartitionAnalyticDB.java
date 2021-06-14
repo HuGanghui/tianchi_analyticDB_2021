@@ -83,6 +83,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
         int partition;
         final byte ten = 10;
         final byte ff = 44;
+        raf.seek(21);
         while (readFileChannel.read(byteBuffer) != -1) {
             byteBuffer.flip();
             byte[] bufferBytes = byteBuffer.array();
@@ -115,7 +116,7 @@ public class PartitionAnalyticDB implements AnalyticDB {
             }
             byteBuffer.clear();
         }
-        printTimeAndMemory("saveToDisk2", "no write + no dataLog + no index + no partition",
+        printTimeAndMemory("saveToDisk2", "no write + no dataLog + no index + no partition + change convertToLong",
                 startWriteTime, System.currentTimeMillis());
 
 //        for (int i = 0; i < columnLength; i++) {
@@ -133,9 +134,9 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
     private long convertToLong(byte[] bytes, int startIndex, int endIndex) {
         // ASCII convert to long
-        if (bytes[startIndex] < 48 || bytes[startIndex] > 57) {
-            throw new NumberFormatException();
-        }
+//        if (bytes[startIndex] < 48 || bytes[startIndex] > 57) {
+//            throw new NumberFormatException();
+//        }
         long result = 0;
         for (int i = startIndex; i < endIndex; i++) {
             result = result * 10 + (bytes[i] - 48);
