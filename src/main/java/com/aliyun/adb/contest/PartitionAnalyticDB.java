@@ -77,7 +77,6 @@ public class PartitionAnalyticDB implements AnalyticDB {
         ByteBuffer byteBuffer = ByteBuffer.allocate(Constant.Buffer_CAP);
 
         long startWriteTime = System.currentTimeMillis();
-        raf.seek(21);
         int index;
         long l;
         byte cur;
@@ -99,19 +98,19 @@ public class PartitionAnalyticDB implements AnalyticDB {
             for (int i = 0; i < n; i++) {
                 cur = bufferBytes[i];
                 if (cur == ten || cur == ff) {
-//                    try {
-                    l = convertToLong(bufferBytes, byteStartIndex, i);
-                    byteStartIndex = i+1;
+                    try {
+                        l = convertToLong(bufferBytes, byteStartIndex, i);
+                        byteStartIndex = i+1;
 //                        byte partition = (byte) ((l >> 56) & 0xff);
 //                        partition = partitionable.getPartition(long2bytes(l));
 //                        index = (cur == ff ? 0 : 1);
 //                        final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
 //                        dataLog.write(l);
-//                    } catch (NumberFormatException e) {
-//                        String temp = new String(bufferBytes, byteStartIndex, i-byteStartIndex, StandardCharsets.US_ASCII);
-//                        byteStartIndex = i+1;
-//                        System.out.println(temp);
-//                    }
+                    } catch (NumberFormatException e) {
+                        String temp = new String(bufferBytes, byteStartIndex, i-byteStartIndex, StandardCharsets.US_ASCII);
+                        byteStartIndex = i+1;
+                        System.out.println(temp);
+                    }
                 }
             }
             byteBuffer.clear();
@@ -134,6 +133,9 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
     private long convertToLong(byte[] bytes, int startIndex, int endIndex) {
         // ASCII convert to long
+        if (bytes[startIndex] < 48 || bytes[startIndex] > 57) {
+            throw new NumberFormatException();
+        }
         long result = 0;
         for (int i = startIndex; i < endIndex; i++) {
             result = result * 10 + (bytes[i] - 48);
