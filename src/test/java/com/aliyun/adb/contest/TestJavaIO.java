@@ -125,36 +125,71 @@ public class TestJavaIO {
     private void testFileChannelRead(File source, int byteSize) throws Exception {
         long startTime = System.currentTimeMillis();
 
-        FileInputStream ins = new FileInputStream(source);
-        FileChannel fcin = ins.getChannel();
+        RandomAccessFile raf = new RandomAccessFile(source, "r");
+        FileChannel readFileChannel = raf.getChannel();
 
-        ByteBuffer bbuff = ByteBuffer.allocate(byteSize);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(byteSize);
 
         byte[] bytes1 = new byte[4096];
         int byteIndex = 0;
         final byte ten = 10;
         final byte ff = 44;
-        while (fcin.read(bbuff) != -1) {
-            bbuff.flip();
-            // Total Time: 10.526 sec 读入11G大小的数据
-            byte[] bytes = bbuff.array();
-            int n = bbuff.limit();
+        while (readFileChannel.read(byteBuffer) != -1) {
+            byteBuffer.flip();
+
+            // Total Time: 17.291 sec 读入11G大小的数据
+            byte[] bufferBytes = byteBuffer.array();
+            int n = byteBuffer.limit();
+            int back = 0;
+            if (bufferBytes[n-1] != ten) {
+                while (bufferBytes[n-1] != ten) {
+                    n--;
+                    back++;
+                }
+                raf.seek(raf.getFilePointer() - back);
+            }
+            int byteStartIndex = 0;
             for (int i = 0; i < n; i++) {
-                byte cur = bytes[i];
+                byte cur = bufferBytes[i];
                 if (cur == ten || cur == ff) {
-                    byteIndex = 0;
-                } else {
-                    bytes1[byteIndex] = cur;
-//                    byteIndex++;
+                    try {
+                        byteStartIndex = i+1;
+                    } catch (NumberFormatException e) {
+                        byteStartIndex = i+1;
+                    }
                 }
             }
-            // Total Time: 32.262 sec 读入11G大小的数据
-//            while (bbuff.hasRemaining()){
-//                byte cur = bbuff.get();
+
+
+            // Total Time: 29.015 sec 读入11G大小的数据
+            // 使用bytes1[]数组，还是有提升空间，毕竟需要多一次读写操作
+//            byte[] bytes = byteBuffer.array();
+//            int n = byteBuffer.limit();
+//            for (int i = 0; i < n; i++) {
+//                byte cur = bytes[i];
+//                if (cur == ten || cur == ff) {
+//                    byteIndex = 0;
+//                } else {
+//                    bytes1[byteIndex] = cur;
+//                    byteIndex++;
+//                }
 //            }
-            bbuff.clear();
+
+
+            // Total Time: 49.637 sec 读入11G大小的数据
+            // byteBuffer.get 这个似乎没有数组对cpu缓存友好
+//            while (byteBuffer.hasRemaining()){
+//                byte cur = byteBuffer.get();
+//                if (cur == ten || cur == ff) {
+//                    byteIndex = 0;
+//                } else {
+//                    bytes1[byteIndex] = cur;
+//                    byteIndex++;
+//                }
+//            }
+            byteBuffer.clear();
         }
-        fcin.close();
+        readFileChannel.close();
 
         long endTime = System.currentTimeMillis();
         double spendTime = (endTime - startTime) / 1000.0;

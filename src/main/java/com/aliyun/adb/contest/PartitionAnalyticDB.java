@@ -78,7 +78,6 @@ public class PartitionAnalyticDB implements AnalyticDB {
 
         long startWriteTime = System.currentTimeMillis();
 
-//        byte[] bytes1 = new byte[4096];
         int index;
         long l;
         int partition;
@@ -88,17 +87,13 @@ public class PartitionAnalyticDB implements AnalyticDB {
             byteBuffer.flip();
             byte[] bufferBytes = byteBuffer.array();
             int n = byteBuffer.limit();
-//            System.out.println("limit: " + n);
             int back = 0;
-//            System.out.println("last byte: " + bufferBytes[n-1]);
             if (bufferBytes[n-1] != ten) {
                 while (bufferBytes[n-1] != ten) {
                     n--;
                     back++;
                 }
-//                System.out.println("before: " + raf.getFilePointer());
                 raf.seek(raf.getFilePointer() - back);
-//                System.out.println("after: " + raf.getFilePointer());
             }
             int byteStartIndex = 0;
             for (int i = 0; i < n; i++) {
@@ -106,12 +101,11 @@ public class PartitionAnalyticDB implements AnalyticDB {
                 if (cur == ten || cur == ff) {
                     try {
                         l = convertToLong(bufferBytes, byteStartIndex, i);
-//                        System.out.println(l);
                         byteStartIndex = i+1;
                         partition = partitionable.getPartition(long2bytes(l));
                         index = (cur == 44 ? 0 : 1);
                         final DataLog dataLog = dataLogMap.get(tableColumns[index])[partition];
-                        dataLog.write(l);
+//                        dataLog.write(l);
                     } catch (NumberFormatException e) {
                         String temp = new String(bufferBytes, byteStartIndex, i-byteStartIndex, StandardCharsets.US_ASCII);
                         byteStartIndex = i+1;
@@ -124,15 +118,15 @@ public class PartitionAnalyticDB implements AnalyticDB {
         printTimeAndMemory("saveToDisk2", "write into partitionDataLog",
                 startWriteTime, System.currentTimeMillis());
 
-        for (int i = 0; i < columnLength; i++) {
-            String key = tableColumns[i];
-            dataLogSizePrefixSumMap.get(key)[0] =
-                    dataLogMap.get(tableColumns[i])[0].destroy();
-            for (int j = 1; j < partitionNum; j++) {
-                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
-                        dataLogMap.get(tableColumns[i])[j].destroy();
-            }
-        }
+//        for (int i = 0; i < columnLength; i++) {
+//            String key = tableColumns[i];
+//            dataLogSizePrefixSumMap.get(key)[0] =
+//                    dataLogMap.get(tableColumns[i])[0].destroy();
+//            for (int j = 1; j < partitionNum; j++) {
+//                dataLogSizePrefixSumMap.get(key)[j] = dataLogSizePrefixSumMap.get(key)[j-1] +
+//                        dataLogMap.get(tableColumns[i])[j].destroy();
+//            }
+//        }
         readFileChannel.close();
         printTimeAndMemory("saveToDisk2", "saveToDisk ended", startTime, System.currentTimeMillis());
     }
